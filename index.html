@@ -5,163 +5,212 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Spinnaker Incident Tracker</title>
 
-  <!-- TailwindCSS CDN -->
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
+  <!-- TailwindCSS CDN & Config -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: '#D4AF37',
+            lgray: '#F8F7F6',
+            dgray: '#1A1A1A'
+          },
+          fontFamily: {
+            body: ['Montserrat','sans-serif'],
+            heading: ['"Playfair Display"','serif']
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+            slideIn: { '0%': { transform: 'translateX(-20px)' }, '100%': { transform: 'translateX(0)' } }
+          },
+          animation: {
+            fadeIn: 'fadeIn 0.5s ease-out',
+            slideIn: 'slideIn 0.5s ease-out'
+          }
+        }
+      }
+    }
+  </script>
 
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    /* Day mode */
-    body.day { background: #f9fafb; color: #1f2937; }
-    body.day .card { background: #ffffff; }
-    body.day .btn-primary { @apply bg-blue-500 text-white; }
-    body.day .btn-danger { @apply bg-red-500 text-white; }
-    body.day .table th { @apply bg-blue-500 text-white; }
-    body.day .table, body.day .table td { @apply border-gray-200; }
-
-    /* Neon “cyberpunk” mode */
-    body.neon { background: #000; color: #fff; }
-    body.neon .card { background: rgba(0,0,0,0.7); }
-    body.neon .btn-primary { background: #00ffff; color: #000; }
-    body.neon .btn-danger { background: #ff0055; color: #fff; }
-    body.neon .table th { background: #ff0055; color: #000; }
-    body.neon .table, body.neon .table td { border-color: #00ffff; }
+    /* Sticky filter bar */
+    #filterBar { position: sticky; top: 0; z-index: 20; }
+    /* Toast container */
+    #toastContainer { position: fixed; bottom: 1rem; right: 1rem; z-index: 50; }
+    .toast {
+      @apply mb-2 px-4 py-2 bg-gold text-dgray rounded-lg shadow-lg flex items-center justify-between animate-fadeIn;
+    }
+    /* Error banner */
+    #errorBanner {
+      @apply fixed top-0 left-0 right-0 bg-red-600 text-white p-4 flex justify-between items-center z-50;
+    }
+    /* Table row hover */
+    .log-row:hover {
+      @apply shadow-lg shadow-gold/50 -translate-y-1 transition-all duration-200;
+    }
+    /* Sticky table header */
+    .table-header th {
+      @apply sticky top-12 bg-gold text-dgray font-heading;
+      z-index: 10;
+    }
   </style>
 </head>
-<body class="day flex flex-col min-h-screen">
 
-  <!-- Navbar / Tabs -->
-  <nav class="card flex items-center justify-between p-4 shadow">
-    <h1 class="text-2xl font-bold">Spinnaker Incident Tracker</h1>
-    <div class="space-x-2">
-      <button id="tabTracker" class="btn-primary px-3 py-1 rounded">Tracker</button>
-      <button id="tabAnalytics" class="btn-primary px-3 py-1 rounded">Analytics</button>
-      <button id="themeToggle" class="btn-primary px-3 py-1 rounded">Toggle Theme</button>
+<body class="flex flex-col min-h-screen bg-lgray text-gray-900 dark:bg-dgray dark:text-gray-100 font-body">
+
+  <!-- NAVBAR -->
+  <nav class="flex items-center justify-between p-6 shadow-lg bg-white dark:bg-black/30">
+    <h1 class="text-3xl font-heading text-gold">Spinnaker Incident Tracker</h1>
+    <div class="space-x-4">
+      <button id="tabTracker" class="px-4 py-2 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition">Tracker</button>
+      <button id="tabAnalytics" class="px-4 py-2 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition">Analytics</button>
+      <button id="themeToggle" class="px-4 py-2 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition">Toggle Theme</button>
     </div>
   </nav>
 
-  <!-- Main Content -->
-  <main class="flex-grow container mx-auto p-4">
+  <!-- ERROR BANNER -->
+  <div id="errorBanner" class="hidden">
+    <span id="errorMsg">Error!</span>
+    <div class="space-x-4">
+      <button id="retryBtn" class="underline">Retry</button>
+      <button id="dismissError" class="text-2xl leading-none">&times;</button>
+    </div>
+  </div>
 
-    <!-- Tracker Section -->
+  <main class="flex-grow container mx-auto p-8">
+
+    <!-- TRACKER -->
     <section id="trackerSection">
-      <!-- Manager Login -->
-      <div id="login" class="card p-6 max-w-md mx-auto space-y-4">
-        <h2 class="text-xl font-semibold">Manager Login</h2>
-        <select id="managerSelect" class="w-full p-2 border rounded">
+
+      <!-- LOGIN -->
+      <div id="login" class="max-w-md mx-auto bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-8 space-y-6">
+        <h2 class="text-2xl font-heading text-center text-gold">Manager Login</h2>
+        <select id="managerSelect" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
           <option value="">Select Manager…</option>
         </select>
-        <button id="loginBtn" class="btn-primary w-full p-2 rounded">Enter</button>
+        <button id="loginBtn" class="w-full px-4 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition font-semibold">Enter</button>
       </div>
 
-      <!-- Incident Form & Table -->
-      <div id="tracker" class="hidden space-y-6">
+      <!-- FORM & TABLE -->
+      <div id="tracker" class="hidden space-y-8 mt-8">
 
-        <!-- Greeting + Logout -->
+        <!-- GREETING & LOGOUT -->
         <div class="flex justify-between items-center">
-          <p>Logged in as <strong id="mgrName"></strong></p>
-          <button id="logoutBtn" class="btn-danger px-3 py-1 rounded">Logout</button>
+          <p class="text-lg">Logged in as <span class="font-semibold" id="mgrName"></span></p>
+          <button id="logoutBtn" class="px-4 py-2 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition">Logout</button>
         </div>
 
-        <!-- Form -->
-        <div class="card p-6 space-y-4 max-w-md">
-          <div class="space-y-2">
-            <label>Sales Rep</label>
-            <select id="repSelect" class="w-full p-2 border rounded">
-              <option value="">Select Rep…</option>
-            </select>
+        <!-- INCIDENT FORM -->
+        <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-8 space-y-6 max-w-xl">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block mb-2 font-medium">Sales Rep</label>
+              <select id="repSelect" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+                <option value="">Select Rep…</option>
+              </select>
+            </div>
+            <div>
+              <label class="block mb-2 font-medium">Incident Type</label>
+              <select id="typeSelect" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+                <option value="">Select Type…</option>
+                <option>Late</option>
+                <option>Call In Sick</option>
+                <option>No Call No Show</option>
+              </select>
+            </div>
           </div>
-          <div class="space-y-2">
-            <label>Incident Type</label>
-            <select id="typeSelect" class="w-full p-2 border rounded">
-              <option value="">Select Type…</option>
+          <div>
+            <label class="block mb-2 font-medium">Notes (optional)</label>
+            <textarea id="notes" rows="3" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"></textarea>
+          </div>
+          <button id="logBtn" class="w-full px-6 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition font-semibold">Log Incident</button>
+        </div>
+
+        <!-- BULK ACTIONS BAR -->
+        <div id="bulkBar" class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-4 flex items-center gap-4 sticky top-20 z-10">
+          <input type="checkbox" id="bulkSelectAll" class="form-checkbox h-5 w-5 text-gold rounded"/>
+          <label for="bulkSelectAll" class="font-medium">Select All</label>
+          <select id="bulkActionSelect" class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+            <option value="">Bulk Action…</option>
+            <option value="Late">Mark Late</option>
+            <option value="Call In Sick">Mark Sick</option>
+            <option value="No Call No Show">Mark No Show</option>
+          </select>
+          <button id="bulkApplyBtn" class="px-4 py-2 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition">Apply</button>
+        </div>
+
+        <!-- FILTER BAR -->
+        <div id="filterBar" class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6 mb-4 sticky top-28 z-10">
+          <div class="flex flex-wrap gap-4">
+            <select id="filterRep" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+              <option value="">All Reps</option>
+            </select>
+            <select id="filterType" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+              <option value="">All Types</option>
               <option>Late</option>
               <option>Call In Sick</option>
               <option>No Call No Show</option>
             </select>
-          </div>
-          <div>
-            <label>Notes (optional)</label>
-            <textarea id="notes" rows="2" class="w-full p-2 border rounded"></textarea>
-          </div>
-          <div class="flex space-x-2">
-            <button id="logBtn" class="btn-primary flex-grow p-2 rounded">Log Incident</button>
-            <!-- cancelBtn will be injected dynamically if editing -->
+            <input type="date" id="filterFrom" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
+            <input type="date" id="filterTo" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
+            <input type="text" id="filterSearch" placeholder="Search notes…" class="flex-grow p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
           </div>
         </div>
 
-        <!-- Filters -->
-        <div class="flex flex-wrap gap-4 mb-4">
-          <select id="filterRep" class="p-2 border rounded">
-            <option value="">All Reps</option>
-          </select>
-          <select id="filterType" class="p-2 border rounded">
-            <option value="">All Types</option>
-            <option>Late</option>
-            <option>Call In Sick</option>
-            <option>No Call No Show</option>
-          </select>
-          <input type="date" id="filterFrom" class="p-2 border rounded"/>
-          <input type="date" id="filterTo" class="p-2 border rounded"/>
-          <input type="text" id="filterSearch" placeholder="Search notes…" class="flex-grow p-2 border rounded"/>
-        </div>
-
-        <!-- Log Table -->
-        <div class="overflow-x-auto">
-          <table class="table w-full border-collapse text-sm">
-            <thead>
+        <!-- LOG TABLE -->
+        <div class="overflow-x-auto max-h-[50vh]">
+          <table class="min-w-full">
+            <thead class="table-header">
               <tr>
-                <th class="border p-2">#</th>
-                <th class="border p-2">Rep</th>
-                <th class="border p-2">Type</th>
-                <th class="border p-2">Time</th>
-                <th class="border p-2">By</th>
-                <th class="border p-2">Notes</th>
-                <th class="border p-2">Actions</th>
+                <th class="px-4 py-2"><input type="checkbox" id="selectAllHeader" class="form-checkbox h-5 w-5 text-gold rounded"/></th>
+                <th class="px-4 py-2">#</th>
+                <th class="px-4 py-2">Rep</th>
+                <th class="px-4 py-2">Type</th>
+                <th class="px-4 py-2">Time</th>
+                <th class="px-4 py-2">By</th>
+                <th class="px-4 py-2">Notes</th>
+                <th class="px-4 py-2">Actions</th>
               </tr>
             </thead>
-            <tbody id="logTableBody"></tbody>
+            <tbody id="logTableBody" class="bg-white dark:bg-black/20 divide-y divide-gray-100 dark:divide-gray-800">
+              <!-- Injected via JS -->
+            </tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- Analytics Section -->
-    <section id="analyticsSection" class="hidden space-y-8">
-      <h2 class="text-xl font-semibold">Analytics</h2>
-      <div class="grid md:grid-cols-2 gap-6">
-        <div class="card p-4">
-          <canvas id="repChart"></canvas>
-        </div>
-        <div class="card p-4">
-          <canvas id="typeChart"></canvas>
-        </div>
-        <div class="card p-4 md:col-span-2">
-          <canvas id="monthChart"></canvas>
-        </div>
+    <!-- ANALYTICS -->
+    <section id="analyticsSection" class="hidden space-y-8 mt-8">
+      <h2 class="text-2xl font-heading text-gold">Analytics</h2>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6"><canvas id="repChart"></canvas></div>
+        <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6"><canvas id="typeChart"></canvas></div>
+        <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6 md:col-span-2"><canvas id="monthChart"></canvas></div>
       </div>
     </section>
   </main>
 
-  <script>
-    // --- Data & Elements ---
-    const managers = [
-      "Stuart, John","Sents, Mathu","Rankin, Jeremy",
-      "Bentzoni, Chadd","Damon Robinson","Tami Tarver"
-    ];
-    const reps = [
-      "Palumbo, Steve","Perryman, Michael","McGuire, Steve",
-      "Jeanette, Anthony","St John, Heather","Cassata, John",
-      "Kelly, Meghan","Gustin, Charles","Gulley, Keviin",
-      "Luttenbacher, Charles","Roman, Joel","Wilson, Mary Ann",
-      "Stapleton, Kyle","Shell, Clayton","Panameno, Michael",
-      "Pozza, John","Roman, Cee Cee","Hurst, Clarence","Laloo, Shiva"
-    ];
-    let logs = JSON.parse(localStorage.getItem('incidentLogs')||'[]');
-    let currentManager = null, editingIndex = null;
+  <!-- TOASTS -->
+  <div id="toastContainer"></div>
 
-    const body = document.body;
+  <script>
+    // --- DATA & ELEMENTS ---
+    const managers = [ "Stuart, John","Sents, Mathu","Rankin, Jeremy","Bentzoni, Chadd","Damon Robinson","Tami Tarver" ];
+    const reps = [ "Palumbo, Steve","Perryman, Michael","McGuire, Steve","Jeanette, Anthony","St John, Heather","Cassata, John","Kelly, Meghan","Gustin, Charles","Gulley, Keviin","Luttenbacher, Charles","Roman, Joel","Wilson, Mary Ann","Stapleton, Kyle","Shell, Clayton","Panameno, Michael","Pozza, John","Roman, Cee Cee","Hurst, Clarence","Laloo, Shiva" ];
+    let logs = JSON.parse(localStorage.getItem('incidentLogs')||'[]');
+    let currentManager = null, editingIndex = null, lastSaveCallback = null;
+
+    // ELEMENT REFS
+    const body = document.documentElement;
     const mgrSelect = document.getElementById('managerSelect');
     const repSelect = document.getElementById('repSelect');
     const filterRep = document.getElementById('filterRep');
@@ -174,48 +223,81 @@
     const loginDiv = document.getElementById('login');
     const trackerDiv = document.getElementById('tracker');
     const analyticsDiv = document.getElementById('analyticsSection');
+    const errorBanner = document.getElementById('errorBanner');
+    const errorMsg = document.getElementById('errorMsg');
+    const retryBtn = document.getElementById('retryBtn');
+    const dismissError = document.getElementById('dismissError');
+    const toastContainer = document.getElementById('toastContainer');
+    const bulkSelectAll = document.getElementById('bulkSelectAll');
+    const selectAllHeader = document.getElementById('selectAllHeader');
+    const bulkActionSelect = document.getElementById('bulkActionSelect');
+    const bulkApplyBtn = document.getElementById('bulkApplyBtn');
 
-    // Charts
     let repChart, typeChart, monthChart;
 
-    // Tabs & Theme
-    document.getElementById('tabTracker').onclick = ()=>{ showSection('tracker'); };
-    document.getElementById('tabAnalytics').onclick = ()=>{ showSection('analytics'); updateCharts(); };
-    document.getElementById('themeToggle').onclick = toggleTheme;
-    function showSection(sec){
-      if(sec==='tracker'){
-        trackerDiv.classList.remove('hidden');
-        analyticsDiv.classList.add('hidden');
-      } else {
-        trackerDiv.classList.add('hidden');
-        analyticsDiv.classList.remove('hidden');
+    // SAVE WITH ERROR HANDLING
+    function saveLogs(callback) {
+      lastSaveCallback = callback;
+      try {
+        localStorage.setItem('incidentLogs', JSON.stringify(logs));
+        hideError();
+        callback();
+      } catch(e) {
+        showError("Couldn't save incident. Try again?", retrySave);
       }
     }
-    function toggleTheme(){
-      const next = body.classList.contains('day') ? 'neon' : 'day';
-      body.classList.replace(body.classList.contains('day')?'day':'neon', next);
-      localStorage.setItem('theme', next);
+    function retrySave() {
+      if (lastSaveCallback) saveLogs(lastSaveCallback);
     }
-    // Init theme
-    (()=>{
-      const saved = localStorage.getItem('theme')||'day';
-      body.classList.remove('day','neon');
-      body.classList.add(saved);
+
+    // ERROR BANNER
+    function showError(msg, onRetry) {
+      errorMsg.textContent = msg;
+      retryBtn.onclick = onRetry;
+      errorBanner.classList.remove('hidden');
+    }
+    function hideError() {
+      errorBanner.classList.add('hidden');
+    }
+    dismissError.onclick = hideError;
+
+    // TOASTS
+    function showToast(text) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = `<span>${text}</span><button class="ml-4 font-bold">&times;</button>`;
+      toastContainer.appendChild(t);
+      const remove = () => t.remove();
+      t.querySelector('button').onclick = remove;
+      setTimeout(remove, 3000);
+    }
+
+    // TABS & THEME
+    document.getElementById('tabTracker').onclick = () => showSection('tracker');
+    document.getElementById('tabAnalytics').onclick = () => { showSection('analytics'); updateCharts(); };
+    document.getElementById('themeToggle').onclick = () => {
+      body.classList.toggle('dark');
+      localStorage.setItem('theme', body.classList.contains('dark') ? 'dark' : 'light');
+    };
+    (() => {
+      if (localStorage.getItem('theme')==='dark') body.classList.add('dark');
     })();
+    function showSection(sec) {
+      trackerDiv.classList.toggle('hidden', sec!=='tracker');
+      analyticsDiv.classList.toggle('hidden', sec!=='analytics');
+    }
 
-    // Populate selects
-    managers.forEach(m=>{
-      mgrSelect.insertAdjacentHTML('beforeend',`<option>${m}</option>`);
-    });
-    reps.forEach(r=>{
-      repSelect.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
-      filterRep.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
+    // POPULATE DROPDOWNS
+    managers.forEach(m => mgrSelect.insertAdjacentHTML('beforeend', `<option>${m}</option>`));
+    reps.forEach(r => {
+      repSelect.insertAdjacentHTML('beforeend', `<option>${r}</option>`);
+      filterRep.insertAdjacentHTML('beforeend', `<option>${r}</option>`);
     });
 
-    // Login / Logout
-    document.getElementById('loginBtn').onclick = ()=>{
+    // LOGIN / LOGOUT
+    document.getElementById('loginBtn').onclick = () => {
       const m = mgrSelect.value;
-      if(!m){ alert('Pick a manager'); return; }
+      if (!m) return alert('Select a manager');
       currentManager = m;
       mgrNameEl.textContent = m;
       loginDiv.classList.add('hidden');
@@ -223,147 +305,164 @@
       renderLogs();
       initCharts();
     };
-    document.getElementById('logoutBtn').onclick = ()=>{
+    document.getElementById('logoutBtn').onclick = () => {
       currentManager = null; editingIndex = null;
       loginDiv.classList.remove('hidden');
       trackerDiv.classList.add('hidden');
-      mgrSelect.value='';
+      mgrSelect.value = '';
     };
 
-    // Log / Update handling
-    const logBtn = document.getElementById('logBtn');
-    let cancelBtn = null;
-    logBtn.onclick = ()=>{
+    // LOG / UPDATE HANDLER
+    document.getElementById('logBtn').onclick = () => {
       const rep = repSelect.value, type = document.getElementById('typeSelect').value;
       const notes = document.getElementById('notes').value.trim();
-      if(!rep||!type){ alert('Rep & type required'); return; }
+      if (!rep || !type) return alert('Rep & Type required');
 
-      if(editingIndex!==null){
-        // update
-        logs[editingIndex] = {
-          ...logs[editingIndex],
-          rep, type, notes
-        };
-        editingIndex = null;
-        logBtn.textContent = 'Log Incident';
-        cancelBtn.remove();
-      } else {
-        // new
-        logs.push({ rep, type, notes, manager: currentManager, time: Date.now() });
-      }
-      localStorage.setItem('incidentLogs', JSON.stringify(logs));
-      repSelect.value=''; document.getElementById('typeSelect').value=''; document.getElementById('notes').value='';
-      renderLogs();
+      const action = () => {
+        if (editingIndex!==null) {
+          logs[editingIndex] = { ...logs[editingIndex], rep, type, notes, manager: currentManager, time: Date.now() };
+          showToast(`Updated incident for ${rep}`);
+          editingIndex = null;
+          document.getElementById('logBtn').textContent = 'Log Incident';
+        } else {
+          logs.push({ rep, type, notes, manager: currentManager, time: Date.now() });
+          showToast(`Incident logged for ${rep}`);
+        }
+        repSelect.value=''; document.getElementById('typeSelect').value=''; document.getElementById('notes').value='';
+        renderLogs();
+      };
+      saveLogs(action);
     };
 
-    // Render & Filters
-    [filterRep, filterType, filterFrom, filterTo, filterSearch].forEach(el=>{
-      el.oninput = renderLogs;
-    });
-    function renderLogs(){
-      // filter
+    // BULK SELECT / APPLY
+    selectAllHeader.onchange = bulkSelectAll.onchange = () => {
+      const checked = bulkSelectAll.checked || selectAllHeader.checked;
+      document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = checked);
+      bulkSelectAll.checked = selectAllHeader.checked = checked;
+    };
+    bulkApplyBtn.onclick = () => {
+      const type = bulkActionSelect.value;
+      if (!type) return alert('Choose a bulk action');
+      const toUpdate = Array.from(document.querySelectorAll('.row-checkbox:checked'))
+        .map(cb => +cb.dataset.idx);
+      if (!toUpdate.length) return alert('No rows selected');
+      const action = () => {
+        toUpdate.forEach(i => {
+          logs[i].type = type;
+          logs[i].manager = currentManager;
+          logs[i].time = Date.now();
+        });
+        showToast(`Applied "${type}" to ${toUpdate.length} rows`);
+        renderLogs();
+      };
+      saveLogs(action);
+    };
+
+    // FILTERS
+    [filterRep, filterType, filterFrom, filterTo, filterSearch].forEach(el => el.oninput = renderLogs);
+
+    // RENDER & ANIMATE ROWS
+    function renderLogs() {
       const fr = filterRep.value, ft = filterType.value;
       const fFrom = filterFrom.value, fTo = filterTo.value;
       const fs = filterSearch.value.toLowerCase();
-      const rows = logs.filter(e=>{
-        if(fr&&e.rep!==fr) return false;
-        if(ft&&e.type!==ft) return false;
-        if(fFrom && new Date(e.time)<new Date(fFrom)) return false;
-        if(fTo && new Date(e.time)>new Date(fTo+'T23:59:59')) return false;
-        if(fs && !(e.notes||'').toLowerCase().includes(fs)) return false;
+      const filtered = logs.filter(e => {
+        if (fr && e.rep!==fr) return false;
+        if (ft && e.type!==ft) return false;
+        if (fFrom && new Date(e.time) < new Date(fFrom)) return false;
+        if (fTo && new Date(e.time) > new Date(fTo+'T23:59:59')) return false;
+        if (fs && !(e.notes||'').toLowerCase().includes(fs)) return false;
         return true;
       });
 
       logTableBody.innerHTML = '';
-      rows.forEach((e,i)=>{
+      filtered.forEach((e,i) => {
         const idx = logs.indexOf(e);
         const time = new Date(e.time).toLocaleString();
         const tr = document.createElement('tr');
-        tr.innerHTML=`
-          <td class="border p-1 text-center">${i+1}</td>
-          <td class="border p-1">${e.rep}</td>
-          <td class="border p-1">${e.type}</td>
-          <td class="border p-1">${time}</td>
-          <td class="border p-1">${e.manager}</td>
-          <td class="border p-1">${e.notes||''}</td>
-          <td class="border p-1 space-x-1 text-center">
-            <button data-idx="${idx}" class="edit-btn px-2 py-1 btn-primary rounded text-xs">Edit</button>
-            <button data-idx="${idx}" class="del-btn px-2 py-1 btn-danger rounded text-xs">Del</button>
+        tr.className = 'log-row animate-fadeIn';
+        tr.innerHTML = `
+          <td class="px-4 py-2"><input type="checkbox" data-idx="${idx}" class="row-checkbox form-checkbox h-5 w-5 text-gold rounded"/></td>
+          <td class="px-4 py-2 text-center">${i+1}</td>
+          <td class="px-4 py-2">${e.rep}</td>
+          <td class="px-4 py-2">${e.type}</td>
+          <td class="px-4 py-2">${time}</td>
+          <td class="px-4 py-2">${e.manager}</td>
+          <td class="px-4 py-2">${e.notes||''}</td>
+          <td class="px-4 py-2 space-x-2 text-center">
+            <button data-idx="${idx}" class="edit-btn px-3 py-1 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition text-sm">Edit</button>
+            <button data-idx="${idx}" class="del-btn px-3 py-1 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition text-sm">Del</button>
           </td>`;
         logTableBody.appendChild(tr);
       });
 
-      // Attach edit/delete handlers
-      document.querySelectorAll('.del-btn').forEach(b=>{
-        b.onclick = ()=>{
+      // Attach handlers
+      document.querySelectorAll('.del-btn').forEach(b => {
+        b.onclick = () => {
           const i = +b.dataset.idx;
-          if(confirm('Delete this entry?')) {
+          if (!confirm('Delete this entry?')) return;
+          const action = () => {
             logs.splice(i,1);
-            localStorage.setItem('incidentLogs', JSON.stringify(logs));
-            renderLogs(); updateCharts();
-          }
+            showToast('Entry deleted');
+            renderLogs();
+            updateCharts();
+          };
+          saveLogs(action);
         };
       });
-      document.querySelectorAll('.edit-btn').forEach(b=>{
-        b.onclick = ()=>{
+      document.querySelectorAll('.edit-btn').forEach(b => {
+        b.onclick = () => {
           const i = +b.dataset.idx, e = logs[i];
           repSelect.value = e.rep;
           document.getElementById('typeSelect').value = e.type;
           document.getElementById('notes').value = e.notes;
           editingIndex = i;
-          logBtn.textContent = 'Update';
-          // add cancel
-          if(!cancelBtn){
-            cancelBtn = document.createElement('button');
-            cancelBtn.textContent='Cancel';
-            cancelBtn.className='btn-danger px-4 rounded';
-            cancelBtn.onclick=()=>{
-              editingIndex=null;
-              repSelect.value=''; document.getElementById('typeSelect').value=''; document.getElementById('notes').value='';
-              logBtn.textContent='Log Incident';
-              cancelBtn.remove(); cancelBtn=null;
-            };
-            logBtn.insertAdjacentElement('afterend', cancelBtn);
-          }
+          document.getElementById('logBtn').textContent = 'Update';
         };
       });
 
       updateCharts();
     }
 
-    // Charts init + update
-    function initCharts(){
-      const ctx1 = document.getElementById('repChart').getContext('2d');
-      repChart = new Chart(ctx1, { type:'bar', data:{ labels:[], datasets:[{ label:'Incidents by Rep', data:[] }] } });
-      const ctx2 = document.getElementById('typeChart').getContext('2d');
-      typeChart = new Chart(ctx2, { type:'pie', data:{ labels:[], datasets:[{ label:'By Type', data:[] }] } });
-      const ctx3 = document.getElementById('monthChart').getContext('2d');
-      monthChart = new Chart(ctx3, { type:'bar', data:{ labels:[], datasets:[{ label:'Incidents by Month', data:[] }] } });
+    // CHART.JS INIT & UPDATE
+    function initCharts() {
+      const commonOpts = { animation: { duration: 800, easing: 'easeOutQuart' } };
+      repChart = new Chart(document.getElementById('repChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label:'Incidents by Rep', data: [], backgroundColor:'rgba(212,175,55,0.8)' }] },
+        options: commonOpts
+      });
+      typeChart = new Chart(document.getElementById('typeChart').getContext('2d'), {
+        type: 'pie',
+        data: { labels: [], datasets: [{ label:'By Type', data: [], backgroundColor:['#D4AF37','#E63946','#457B9D'] }] },
+        options: commonOpts
+      });
+      monthChart = new Chart(document.getElementById('monthChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label:'Incidents by Month', data: [], backgroundColor:'rgba(212,175,55,0.8)' }] },
+        options: commonOpts
+      });
       updateCharts();
     }
-    function updateCharts(){
-      if(!repChart) return;
-      // by Rep
+    function updateCharts() {
+      if (!repChart) return;
       const byRep = {}, byType = {}, byMonth = {};
-      logs.forEach(e=>{
+      logs.forEach(e => {
         byRep[e.rep] = (byRep[e.rep]||0)+1;
         byType[e.type] = (byType[e.type]||0)+1;
-        const d = new Date(e.time), key = `${d.getMonth()+1}/${d.getFullYear()}`;
+        const d=new Date(e.time), key=`${d.getMonth()+1}/${d.getFullYear()}`;
         byMonth[key] = (byMonth[key]||0)+1;
       });
-      // rep
       repChart.data.labels = Object.keys(byRep);
       repChart.data.datasets[0].data = Object.values(byRep);
       repChart.update();
-      // type
       typeChart.data.labels = Object.keys(byType);
       typeChart.data.datasets[0].data = Object.values(byType);
       typeChart.update();
-      // month (sorted)
       const sorted = Object.entries(byMonth).sort((a,b)=>{
-        const [am, ay] = a[0].split('/').map(Number);
-        const [bm, by] = b[0].split('/').map(Number);
-        return new Date(ay,am-1) - new Date(by,bm-1);
+        const [am,ay] = a[0].split('/').map(Number);
+        const [bm,by_] = b[0].split('/').map(Number);
+        return new Date(ay,am-1) - new Date(by_,bm-1);
       });
       monthChart.data.labels = sorted.map(x=>x[0]);
       monthChart.data.datasets[0].data = sorted.map(x=>x[1]);
