@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Spinnaker Incident Tracker</title>
+
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Day mode */
+    body.day { background: #f9fafb; color: #1f2937; }
+    body.day .card { background: #ffffff; }
+    body.day .btn-primary { @apply bg-blue-500 text-white; }
+    body.day .btn-danger { @apply bg-red-500 text-white; }
+    body.day .table th { @apply bg-blue-500 text-white; }
+    body.day .table, body.day .table td { @apply border-gray-200; }
+
+    /* Neon “cyberpunk” mode */
+    body.neon { background: #000; color: #fff; }
+    body.neon .card { background: rgba(0,0,0,0.7); }
+    body.neon .btn-primary { background: #00ffff; color: #000; }
+    body.neon .btn-danger { background: #ff0055; color: #fff; }
+    body.neon .table th { background: #ff0055; color: #000; }
+    body.neon .table, body.neon .table td { border-color: #00ffff; }
+  </style>
+</head>
+<body class="day flex flex-col min-h-screen">
+
+  <!-- Navbar / Tabs -->
+  <nav class="card flex items-center justify-between p-4 shadow">
+    <h1 class="text-2xl font-bold">Spinnaker Incident Tracker</h1>
+    <div class="space-x-2">
+      <button id="tabTracker" class="btn-primary px-3 py-1 rounded">Tracker</button>
+      <button id="tabAnalytics" class="btn-primary px-3 py-1 rounded">Analytics</button>
+      <button id="themeToggle" class="btn-primary px-3 py-1 rounded">Toggle Theme</button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto p-4">
+
+    <!-- Tracker Section -->
+    <section id="trackerSection">
+      <!-- Manager Login -->
+      <div id="login" class="card p-6 max-w-md mx-auto space-y-4">
+        <h2 class="text-xl font-semibold">Manager Login</h2>
+        <select id="managerSelect" class="w-full p-2 border rounded">
+          <option value="">Select Manager…</option>
+        </select>
+        <button id="loginBtn" class="btn-primary w-full p-2 rounded">Enter</button>
+      </div>
+
+      <!-- Incident Form & Table -->
+      <div id="tracker" class="hidden space-y-6">
+
+        <!-- Greeting + Logout -->
+        <div class="flex justify-between items-center">
+          <p>Logged in as <strong id="mgrName"></strong></p>
+          <button id="logoutBtn" class="btn-danger px-3 py-1 rounded">Logout</button>
+        </div>
+
+        <!-- Form -->
+        <div class="card p-6 space-y-4 max-w-md">
+          <div class="space-y-2">
+            <label>Sales Rep</label>
+            <select id="repSelect" class="w-full p-2 border rounded">
+              <option value="">Select Rep…</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label>Incident Type</label>
+            <select id="typeSelect" class="w-full p-2 border rounded">
+              <option value="">Select Type…</option>
+              <option>Late</option>
+              <option>Call In Sick</option>
+              <option>No Call No Show</option>
+            </select>
+          </div>
+          <div>
+            <label>Notes (optional)</label>
+            <textarea id="notes" rows="2" class="w-full p-2 border rounded"></textarea>
+          </div>
+          <div class="flex space-x-2">
+            <button id="logBtn" class="btn-primary flex-grow p-2 rounded">Log Incident</button>
+            <!-- cancelBtn will be injected dynamically if editing -->
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-4 mb-4">
+          <select id="filterRep" class="p-2 border rounded">
+            <option value="">All Reps</option>
+          </select>
+          <select id="filterType" class="p-2 border rounded">
+            <option value="">All Types</option>
+            <option>Late</option>
+            <option>Call In Sick</option>
+            <option>No Call No Show</option>
+          </select>
+          <input type="date" id="filterFrom" class="p-2 border rounded"/>
+          <input type="date" id="filterTo" class="p-2 border rounded"/>
+          <input type="text" id="filterSearch" placeholder="Search notes…" class="flex-grow p-2 border rounded"/>
+        </div>
+
+        <!-- Log Table -->
+        <div class="overflow-x-auto">
+          <table class="table w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                <th class="border p-2">#</th>
+                <th class="border p-2">Rep</th>
+                <th class="border p-2">Type</th>
+                <th class="border p-2">Time</th>
+                <th class="border p-2">By</th>
+                <th class="border p-2">Notes</th>
+                <th class="border p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="logTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analytics Section -->
+    <section id="analyticsSection" class="hidden space-y-8">
+      <h2 class="text-xl font-semibold">Analytics</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="card p-4">
+          <canvas id="repChart"></canvas>
+        </div>
+        <div class="card p-4">
+          <canvas id="typeChart"></canvas>
+        </div>
+        <div class="card p-4 md:col-span-2">
+          <canvas id="monthChart"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // --- Data & Elements ---
+    const managers = [
+      "Stuart, John","Sents, Mathu","Rankin, Jeremy",
+      "Bentzoni, Chadd","Damon Robinson","Tami Tarver"
+    ];
+    const reps = [
+      "Palumbo, Steve","Perryman, Michael","McGuire, Steve",
+      "Jeanette, Anthony","St John, Heather","Cassata, John",
+      "Kelly, Meghan","Gustin, Charles","Gulley, Keviin",
+      "Luttenbacher, Charles","Roman, Joel","Wilson, Mary Ann",
+      "Stapleton, Kyle","Shell, Clayton","Panameno, Michael",
+      "Pozza, John","Roman, Cee Cee","Hurst, Clarence","Laloo, Shiva"
+    ];
+    let logs = JSON.parse(localStorage.getItem('incidentLogs')||'[]');
+    let currentManager = null, editingIndex = null;
+
+    const body = document.body;
+    const mgrSelect = document.getElementById('managerSelect');
+    const repSelect = document.getElementById('repSelect');
+    const filterRep = document.getElementById('filterRep');
+    const filterType = document.getElementById('filterType');
+    const filterFrom = document.getElementById('filterFrom');
+    const filterTo = document.getElementById('filterTo');
+    const filterSearch = document.getElementById('filterSearch');
+    const mgrNameEl = document.getElementById('mgrName');
+    const logTableBody = document.getElementById('logTableBody');
+    const loginDiv = document.getElementById('login');
+    const trackerDiv = document.getElementById('tracker');
+    const analyticsDiv = document.getElementById('analyticsSection');
+
+    // Charts
+    let repChart, typeChart, monthChart;
+
+    // Tabs & Theme
+    document.getElementById('tabTracker').onclick = ()=>{ showSection('tracker'); };
+    document.getElementById('tabAnalytics').onclick = ()=>{ showSection('analytics'); updateCharts(); };
+    document.getElementById('themeToggle').onclick = toggleTheme;
+    function showSection(sec){
+      if(sec==='tracker'){
+        trackerDiv.classList.remove('hidden');
+        analyticsDiv.classList.add('hidden');
+      } else {
+        trackerDiv.classList.add('hidden');
+        analyticsDiv.classList.remove('hidden');
+      }
+    }
+    function toggleTheme(){
+      const next = body.classList.contains('day') ? 'neon' : 'day';
+      body.classList.replace(body.classList.contains('day')?'day':'neon', next);
+      localStorage.setItem('theme', next);
+    }
+    // Init theme
+    (()=>{
+      const saved = localStorage.getItem('theme')||'day';
+      body.classList.remove('day','neon');
+      body.classList.add(saved);
+    })();
+
+    // Populate selects
+    managers.forEach(m=>{
+      mgrSelect.insertAdjacentHTML('beforeend',`<option>${m}</option>`);
+    });
+    reps.forEach(r=>{
+      repSelect.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
+      filterRep.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
+    });
+
+    // Login / Logout
+    document.getElementById('loginBtn').onclick = ()=>{
+      const m = mgrSelect.value;
+      if(!m){ alert('Pick a manager'); return; }
+      currentManager = m;
+      mgrNameEl.textContent = m;
+      loginDiv.classList.add('hidden');
+      trackerDiv.classList.remove('hidden');
+      renderLogs();
+      initCharts();
+    };
+    document.getElementById('logoutBtn').onclick = ()=>{
+      currentManager = null; editingIndex = null;
+      loginDiv.classList.remove('hidden');
+      trackerDiv.classList.add('hidden');
+      mgrSelect.value='';
+    };
+
+    // Log / Update handling
+    const logBtn = document.getElementById('logBtn');
+    let cancelBtn = null;
+    logBtn.onclick = ()=>{
+      const rep = repSelect.value, type = document.getElementById('typeSelect').value;
+      const notes = document.getElementById('notes').value.trim();
+      if(!rep||!type){ alert('Rep & type required'); return; }
+
+      if(editingIndex!==null){
+        // update
+        logs[editingIndex] = {
+          ...logs[editingIndex],
+          rep, type, notes
+        };
+        editingIndex = null;
+        logBtn.textContent = 'Log Incident';
+        cancelBtn.remove();
+      } else {
+        // new
+        logs.push({ rep, type, notes, manager: currentManager, time: Date.now() });
+      }
+      localStorage.setItem('incidentLogs', JSON.stringify(logs));
+      repSelect.value=''; document.getElementById('typeSelect').value=''; document.getElementById('notes').value='';
+      renderLogs();
+    };
+
+    // Render & Filters
+    [filterRep, filterType, filterFrom, filterTo, filterSearch].forEach(el=>{
+      el.oninput = renderLogs;
+    });
+    function renderLogs(){
+      // filter
+      const fr = filterRep.value, ft = filterType.value;
+      const fFrom = filterFrom.value, fTo = filterTo.value;
+      const fs = filterSearch.value.toLowerCase();
+      const rows = logs.filter(e=>{
+        if(fr&&e.rep!==fr) return false;
+        if(ft&&e.type!==ft) return false;
+        if(fFrom && new Date(e.time)<new Date(fFrom)) return false;
+        if(fTo && new Date(e.time)>new Date(fTo+'T23:59:59')) return false;
+        if(fs && !(e.notes||'').toLowerCase().includes(fs)) return false;
+        return true;
+      });
+
+      logTableBody.innerHTML = '';
+      rows.forEach((e,i)=>{
+        const idx = logs.indexOf(e);
+        const time = new Date(e.time).toLocaleString();
+        const tr = document.createElement('tr');
+        tr.innerHTML=`
+          <td class="border p-1 text-center">${i+1}</td>
+          <td class="border p-1">${e.rep}</td>
+          <td class="border p-1">${e.type}</td>
+          <td class="border p-1">${time}</td>
+          <td class="border p-1">${e.manager}</td>
+          <td class="border p-1">${e.notes||''}</td>
+          <td class="border p-1 space-x-1 text-center">
+            <button data-idx="${idx}" class="edit-btn px-2 py-1 btn-primary rounded text-xs">Edit</button>
+            <button data-idx="${idx}" class="del-btn px-2 py-1 btn-danger rounded text-xs">Del</button>
+          </td>`;
+        logTableBody.appendChild(tr);
+      });
+
+      // Attach edit/delete handlers
+      document.querySelectorAll('.del-btn').forEach(b=>{
+        b.onclick = ()=>{
+          const i = +b.dataset.idx;
+          if(confirm('Delete this entry?')) {
+            logs.splice(i,1);
+            localStorage.setItem('incidentLogs', JSON.stringify(logs));
+            renderLogs(); updateCharts();
+          }
+        };
+      });
+      document.querySelectorAll('.edit-btn').forEach(b=>{
+        b.onclick = ()=>{
+          const i = +b.dataset.idx, e = logs[i];
+          repSelect.value = e.rep;
+          document.getElementById('typeSelect').value = e.type;
+          document.getElementById('notes').value = e.notes;
+          editingIndex = i;
+          logBtn.textContent = 'Update';
+          // add cancel
+          if(!cancelBtn){
+            cancelBtn = document.createElement('button');
+            cancelBtn.textContent='Cancel';
+            cancelBtn.className='btn-danger px-4 rounded';
+            cancelBtn.onclick=()=>{
+              editingIndex=null;
+              repSelect.value=''; document.getElementById('typeSelect').value=''; document.getElementById('notes').value='';
+              logBtn.textContent='Log Incident';
+              cancelBtn.remove(); cancelBtn=null;
+            };
+            logBtn.insertAdjacentElement('afterend', cancelBtn);
+          }
+        };
+      });
+
+      updateCharts();
+    }
+
+    // Charts init + update
+    function initCharts(){
+      const ctx1 = document.getElementById('repChart').getContext('2d');
+      repChart = new Chart(ctx1, { type:'bar', data:{ labels:[], datasets:[{ label:'Incidents by Rep', data:[] }] } });
+      const ctx2 = document.getElementById('typeChart').getContext('2d');
+      typeChart = new Chart(ctx2, { type:'pie', data:{ labels:[], datasets:[{ label:'By Type', data:[] }] } });
+      const ctx3 = document.getElementById('monthChart').getContext('2d');
+      monthChart = new Chart(ctx3, { type:'bar', data:{ labels:[], datasets:[{ label:'Incidents by Month', data:[] }] } });
+      updateCharts();
+    }
+    function updateCharts(){
+      if(!repChart) return;
+      // by Rep
+      const byRep = {}, byType = {}, byMonth = {};
+      logs.forEach(e=>{
+        byRep[e.rep] = (byRep[e.rep]||0)+1;
+        byType[e.type] = (byType[e.type]||0)+1;
+        const d = new Date(e.time), key = `${d.getMonth()+1}/${d.getFullYear()}`;
+        byMonth[key] = (byMonth[key]||0)+1;
+      });
+      // rep
+      repChart.data.labels = Object.keys(byRep);
+      repChart.data.datasets[0].data = Object.values(byRep);
+      repChart.update();
+      // type
+      typeChart.data.labels = Object.keys(byType);
+      typeChart.data.datasets[0].data = Object.values(byType);
+      typeChart.update();
+      // month (sorted)
+      const sorted = Object.entries(byMonth).sort((a,b)=>{
+        const [am, ay] = a[0].split('/').map(Number);
+        const [bm, by] = b[0].split('/').map(Number);
+        return new Date(ay,am-1) - new Date(by,bm-1);
+      });
+      monthChart.data.labels = sorted.map(x=>x[0]);
+      monthChart.data.datasets[0].data = sorted.map(x=>x[1]);
+      monthChart.update();
+    }
+  </script>
+</body>
+</html>
