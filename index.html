@@ -8,7 +8,7 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
-  <!-- TailwindCSS CDN & Config -->
+  <!-- TailwindCSS & Config -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -37,12 +37,16 @@
     }
   </script>
 
-  <!-- Chart.js CDN -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     /* Sticky filter bar */
     #filterBar { position: sticky; top: 0; z-index: 20; }
+    /* Sticky table header */
+    .table-header th {
+      @apply sticky top-20 bg-gold text-dgray font-heading z-10;
+    }
     /* Toast container */
     #toastContainer { position: fixed; bottom: 1rem; right: 1rem; z-index: 50; }
     .toast {
@@ -55,11 +59,6 @@
     /* Table row hover */
     .log-row:hover {
       @apply shadow-lg shadow-gold/50 -translate-y-1 transition-all duration-200;
-    }
-    /* Sticky table header */
-    .table-header th {
-      @apply sticky top-12 bg-gold text-dgray font-heading;
-      z-index: 10;
     }
   </style>
 </head>
@@ -85,7 +84,7 @@
     </div>
   </div>
 
-  <main class="flex-grow container mx-auto p-8">
+  <main class="flex-grow container mx-auto px-4 py-6 md:px-8 md:py-8 space-y-8">
 
     <!-- TRACKER -->
     <section id="trackerSection">
@@ -110,7 +109,7 @@
 
         <!-- INCIDENT FORM -->
         <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-8 space-y-6 max-w-xl">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 gap-6">
             <div>
               <label class="block mb-2 font-medium">Sales Rep</label>
               <select id="repSelect" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
@@ -131,14 +130,19 @@
             <label class="block mb-2 font-medium">Notes (optional)</label>
             <textarea id="notes" rows="3" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"></textarea>
           </div>
-          <button id="logBtn" class="w-full px-6 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition font-semibold">Log Incident</button>
+          <div class="flex flex-col md:flex-row gap-4">
+            <button id="logBtn" class="flex-1 px-6 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition font-semibold">Log Incident</button>
+            <button id="voiceBtn" class="flex-1 px-6 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition font-semibold">
+              🎤 Voice Command
+            </button>
+          </div>
         </div>
 
         <!-- BULK ACTIONS BAR -->
-        <div id="bulkBar" class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-4 flex items-center gap-4 sticky top-20 z-10">
+        <div id="bulkBar" class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center space-y-3 md:space-y-0 md:space-x-4 sticky top-20 z-10">
           <input type="checkbox" id="bulkSelectAll" class="form-checkbox h-5 w-5 text-gold rounded"/>
           <label for="bulkSelectAll" class="font-medium">Select All</label>
-          <select id="bulkActionSelect" class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+          <select id="bulkActionSelect" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition flex-1">
             <option value="">Bulk Action…</option>
             <option value="Late">Mark Late</option>
             <option value="Call In Sick">Mark Sick</option>
@@ -161,27 +165,27 @@
             </select>
             <input type="date" id="filterFrom" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
             <input type="date" id="filterTo" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
-            <input type="text" id="filterSearch" placeholder="Search notes…" class="flex-grow p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
+            <input type="text" id="filterSearch" placeholder="Search notes…" class="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
           </div>
         </div>
 
         <!-- LOG TABLE -->
         <div class="overflow-x-auto max-h-[50vh]">
-          <table class="min-w-full">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="table-header">
               <tr>
-                <th class="px-4 py-2"><input type="checkbox" id="selectAllHeader" class="form-checkbox h-5 w-5 text-gold rounded"/></th>
-                <th class="px-4 py-2">#</th>
-                <th class="px-4 py-2">Rep</th>
-                <th class="px-4 py-2">Type</th>
-                <th class="px-4 py-2">Time</th>
-                <th class="px-4 py-2">By</th>
-                <th class="px-4 py-2">Notes</th>
-                <th class="px-4 py-2">Actions</th>
+                <th class="px-4 py-3"><input type="checkbox" id="selectAllHeader" class="form-checkbox h-5 w-5 text-gold rounded"/></th>
+                <th class="px-4 py-3">#</th>
+                <th class="px-4 py-3">Rep</th>
+                <th class="px-4 py-3">Type</th>
+                <th class="px-4 py-3">Time</th>
+                <th class="px-4 py-3">By</th>
+                <th class="px-4 py-3">Notes</th>
+                <th class="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody id="logTableBody" class="bg-white dark:bg-black/20 divide-y divide-gray-100 dark:divide-gray-800">
-              <!-- Injected via JS -->
+              <!-- injected via JS -->
             </tbody>
           </table>
         </div>
@@ -197,19 +201,20 @@
         <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6 md:col-span-2"><canvas id="monthChart"></canvas></div>
       </div>
     </section>
+
   </main>
 
   <!-- TOASTS -->
   <div id="toastContainer"></div>
 
   <script>
-    // --- DATA & ELEMENTS ---
+    // Data & elements
     const managers = [ "Stuart, John","Sents, Mathu","Rankin, Jeremy","Bentzoni, Chadd","Damon Robinson","Tami Tarver" ];
     const reps = [ "Palumbo, Steve","Perryman, Michael","McGuire, Steve","Jeanette, Anthony","St John, Heather","Cassata, John","Kelly, Meghan","Gustin, Charles","Gulley, Keviin","Luttenbacher, Charles","Roman, Joel","Wilson, Mary Ann","Stapleton, Kyle","Shell, Clayton","Panameno, Michael","Pozza, John","Roman, Cee Cee","Hurst, Clarence","Laloo, Shiva" ];
     let logs = JSON.parse(localStorage.getItem('incidentLogs')||'[]');
     let currentManager = null, editingIndex = null, lastSaveCallback = null;
 
-    // ELEMENT REFS
+    // Refs
     const body = document.documentElement;
     const mgrSelect = document.getElementById('managerSelect');
     const repSelect = document.getElementById('repSelect');
@@ -235,97 +240,81 @@
 
     let repChart, typeChart, monthChart;
 
-    // SAVE WITH ERROR HANDLING
-    function saveLogs(callback) {
-      lastSaveCallback = callback;
+    // Save with error handling
+    function saveLogs(cb) {
+      lastSaveCallback = cb;
       try {
         localStorage.setItem('incidentLogs', JSON.stringify(logs));
         hideError();
-        callback();
-      } catch(e) {
-        showError("Couldn't save incident. Try again?", retrySave);
+        cb();
+      } catch {
+        showError("Couldn't save incident—retry?", retrySave);
       }
     }
-    function retrySave() {
-      if (lastSaveCallback) saveLogs(lastSaveCallback);
-    }
+    function retrySave() { if (lastSaveCallback) saveLogs(lastSaveCallback); }
 
-    // ERROR BANNER
+    // Error banner
     function showError(msg, onRetry) {
       errorMsg.textContent = msg;
       retryBtn.onclick = onRetry;
       errorBanner.classList.remove('hidden');
     }
-    function hideError() {
-      errorBanner.classList.add('hidden');
-    }
+    function hideError() { errorBanner.classList.add('hidden'); }
     dismissError.onclick = hideError;
 
-    // TOASTS
-    function showToast(text) {
+    // Toasts
+    function showToast(txt) {
       const t = document.createElement('div');
       t.className = 'toast';
-      t.innerHTML = `<span>${text}</span><button class="ml-4 font-bold">&times;</button>`;
+      t.innerHTML = `<span>${txt}</span><button class="ml-4 font-bold">&times;</button>`;
       toastContainer.appendChild(t);
-      const remove = () => t.remove();
-      t.querySelector('button').onclick = remove;
-      setTimeout(remove, 3000);
+      const rm = () => t.remove();
+      t.querySelector('button').onclick = rm;
+      setTimeout(rm,3000);
     }
 
-    // TABS & THEME
+    // Tabs & theme
     document.getElementById('tabTracker').onclick = () => showSection('tracker');
     document.getElementById('tabAnalytics').onclick = () => { showSection('analytics'); updateCharts(); };
     document.getElementById('themeToggle').onclick = () => {
       body.classList.toggle('dark');
-      localStorage.setItem('theme', body.classList.contains('dark') ? 'dark' : 'light');
+      localStorage.setItem('theme', body.classList.contains('dark')?'dark':'light');
     };
-    (() => {
-      if (localStorage.getItem('theme')==='dark') body.classList.add('dark');
-    })();
-    function showSection(sec) {
-      trackerDiv.classList.toggle('hidden', sec!=='tracker');
-      analyticsDiv.classList.toggle('hidden', sec!=='analytics');
-    }
+    if(localStorage.getItem('theme')==='dark') body.classList.add('dark');
+    function showSection(s){ trackerDiv.classList.toggle('hidden',s!=='tracker'); analyticsDiv.classList.toggle('hidden',s!=='analytics'); }
 
-    // POPULATE DROPDOWNS
-    managers.forEach(m => mgrSelect.insertAdjacentHTML('beforeend', `<option>${m}</option>`));
-    reps.forEach(r => {
-      repSelect.insertAdjacentHTML('beforeend', `<option>${r}</option>`);
-      filterRep.insertAdjacentHTML('beforeend', `<option>${r}</option>`);
+    // Populate dropdowns
+    managers.forEach(m=>mgrSelect.insertAdjacentHTML('beforeend',`<option>${m}</option>`));
+    reps.forEach(r=> {
+      repSelect.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
+      filterRep.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
     });
 
-    // LOGIN / LOGOUT
+    // Login/logout
     document.getElementById('loginBtn').onclick = () => {
-      const m = mgrSelect.value;
-      if (!m) return alert('Select a manager');
-      currentManager = m;
-      mgrNameEl.textContent = m;
-      loginDiv.classList.add('hidden');
-      trackerDiv.classList.remove('hidden');
-      renderLogs();
-      initCharts();
+      const m = mgrSelect.value; if(!m) return alert('Select manager');
+      currentManager=m; mgrNameEl.textContent=m;
+      loginDiv.classList.add('hidden'); trackerDiv.classList.remove('hidden');
+      renderLogs(); initCharts();
     };
     document.getElementById('logoutBtn').onclick = () => {
-      currentManager = null; editingIndex = null;
-      loginDiv.classList.remove('hidden');
-      trackerDiv.classList.add('hidden');
-      mgrSelect.value = '';
+      currentManager=null; editingIndex=null;
+      loginDiv.classList.remove('hidden'); trackerDiv.classList.add('hidden');
+      mgrSelect.value='';
     };
 
-    // LOG / UPDATE HANDLER
+    // Log/update handler
     document.getElementById('logBtn').onclick = () => {
-      const rep = repSelect.value, type = document.getElementById('typeSelect').value;
-      const notes = document.getElementById('notes').value.trim();
-      if (!rep || !type) return alert('Rep & Type required');
-
+      const rep=repSelect.value, type=document.getElementById('typeSelect').value;
+      const notes=document.getElementById('notes').value.trim();
+      if(!rep||!type) return alert('Rep & Type required');
       const action = () => {
-        if (editingIndex!==null) {
-          logs[editingIndex] = { ...logs[editingIndex], rep, type, notes, manager: currentManager, time: Date.now() };
+        if(editingIndex!==null) {
+          logs[editingIndex]={...logs[editingIndex],rep,type,notes,manager:currentManager,time:Date.now()};
           showToast(`Updated incident for ${rep}`);
-          editingIndex = null;
-          document.getElementById('logBtn').textContent = 'Log Incident';
+          editingIndex=null; document.getElementById('logBtn').textContent='Log Incident';
         } else {
-          logs.push({ rep, type, notes, manager: currentManager, time: Date.now() });
+          logs.push({rep,type,notes,manager:currentManager,time:Date.now()});
           showToast(`Incident logged for ${rep}`);
         }
         repSelect.value=''; document.getElementById('typeSelect').value=''; document.getElementById('notes').value='';
@@ -334,62 +323,54 @@
       saveLogs(action);
     };
 
-    // BULK SELECT / APPLY
+    // Bulk actions
     selectAllHeader.onchange = bulkSelectAll.onchange = () => {
-      const checked = bulkSelectAll.checked || selectAllHeader.checked;
-      document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = checked);
-      bulkSelectAll.checked = selectAllHeader.checked = checked;
+      const chk = bulkSelectAll.checked||selectAllHeader.checked;
+      document.querySelectorAll('.row-checkbox').forEach(cb=>cb.checked=chk);
+      bulkSelectAll.checked=selectAllHeader.checked=chk;
     };
     bulkApplyBtn.onclick = () => {
-      const type = bulkActionSelect.value;
-      if (!type) return alert('Choose a bulk action');
-      const toUpdate = Array.from(document.querySelectorAll('.row-checkbox:checked'))
-        .map(cb => +cb.dataset.idx);
-      if (!toUpdate.length) return alert('No rows selected');
+      const type=bulkActionSelect.value; if(!type) return alert('Choose action');
+      const idxs=Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb=>+cb.dataset.idx);
+      if(!idxs.length) return alert('No rows selected');
       const action = () => {
-        toUpdate.forEach(i => {
-          logs[i].type = type;
-          logs[i].manager = currentManager;
-          logs[i].time = Date.now();
-        });
-        showToast(`Applied "${type}" to ${toUpdate.length} rows`);
+        idxs.forEach(i=>{ logs[i].type=type; logs[i].manager=currentManager; logs[i].time=Date.now(); });
+        showToast(`Applied "${type}" to ${idxs.length} rows`);
         renderLogs();
       };
       saveLogs(action);
     };
 
-    // FILTERS
-    [filterRep, filterType, filterFrom, filterTo, filterSearch].forEach(el => el.oninput = renderLogs);
+    // Filters
+    [filterRep,filterType,filterFrom,filterTo,filterSearch].forEach(el=>el.oninput=renderLogs);
 
-    // RENDER & ANIMATE ROWS
+    // Render table
     function renderLogs() {
-      const fr = filterRep.value, ft = filterType.value;
-      const fFrom = filterFrom.value, fTo = filterTo.value;
-      const fs = filterSearch.value.toLowerCase();
-      const filtered = logs.filter(e => {
-        if (fr && e.rep!==fr) return false;
-        if (ft && e.type!==ft) return false;
-        if (fFrom && new Date(e.time) < new Date(fFrom)) return false;
-        if (fTo && new Date(e.time) > new Date(fTo+'T23:59:59')) return false;
-        if (fs && !(e.notes||'').toLowerCase().includes(fs)) return false;
+      const fr=filterRep.value, ft=filterType.value, fF=filterFrom.value, fT=filterTo.value, fs=filterSearch.value.toLowerCase();
+      const filtered = logs.filter(e=>{
+        if(fr&&e.rep!==fr) return false;
+        if(ft&&e.type!==ft) return false;
+        if(fF&&new Date(e.time)<new Date(fF)) return false;
+        if(fT&&new Date(e.time)>new Date(fT+'T23:59:59')) return false;
+        if(fs&&!(e.notes||'').toLowerCase().includes(fs)) return false;
         return true;
       });
 
-      logTableBody.innerHTML = '';
-      filtered.forEach((e,i) => {
-        const idx = logs.indexOf(e);
-        const time = new Date(e.time).toLocaleString();
-        const tr = document.createElement('tr');
-        tr.className = 'log-row animate-fadeIn';
-        tr.innerHTML = `
-          <td class="px-4 py-2"><input type="checkbox" data-idx="${idx}" class="row-checkbox form-checkbox h-5 w-5 text-gold rounded"/></td>
-          <td class="px-4 py-2 text-center">${i+1}</td>
-          <td class="px-4 py-2">${e.rep}</td>
-          <td class="px-4 py-2">${e.type}</td>
-          <td class="px-4 py-2">${time}</td>
-          <td class="px-4 py-2">${e.manager}</td>
-          <td class="px-4 py-2">${e.notes||''}</td>
-          <td class="px-4 py-2 space-x-2 text-center">
+      logTableBody.innerHTML='';
+      filtered.forEach((e,i)=>{
+        const idx=logs.indexOf(e);
+        const time=new Date(e.time).toLocaleString();
+        const tr=document.createElement('tr');
+        tr.className='log-row animate-fadeIn';
+        tr.innerHTML=`
+          <td class="px-4 py-3"><input type="checkbox" data-idx="${idx}" class="row-checkbox form-checkbox h-5 w-5 text-gold rounded"/></td>
+          <td class="px-4 py-3 text-center">${i+1}</td>
+          <td class="px-4 py-3">${e.rep}</td>
+          <td class="px-4 py-3">${e.type}</td>
+          <td class="px-4 py-3">${time}</td>
+          <td class="px-4 py-3">${e.manager}</td>
+          <td class="px-4 py-3">${e.notes||''}</td>
+          <td class="px-4 py-3 space-x-2 text-center">
             <button data-idx="${idx}" class="edit-btn px-3 py-1 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition text-sm">Edit</button>
             <button data-idx="${idx}" class="del-btn px-3 py-1 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition text-sm">Del</button>
           </td>`;
@@ -397,76 +378,104 @@
       });
 
       // Attach handlers
-      document.querySelectorAll('.del-btn').forEach(b => {
-        b.onclick = () => {
-          const i = +b.dataset.idx;
-          if (!confirm('Delete this entry?')) return;
-          const action = () => {
-            logs.splice(i,1);
-            showToast('Entry deleted');
-            renderLogs();
-            updateCharts();
-          };
-          saveLogs(action);
+      document.querySelectorAll('.del-btn').forEach(b=>b.onclick=()=>{
+        const i=+b.dataset.idx;
+        if(!confirm('Delete this entry?')) return;
+        const action=()=>{
+          logs.splice(i,1);
+          showToast('Entry deleted');
+          renderLogs(); updateCharts();
         };
+        saveLogs(action);
       });
-      document.querySelectorAll('.edit-btn').forEach(b => {
-        b.onclick = () => {
-          const i = +b.dataset.idx, e = logs[i];
-          repSelect.value = e.rep;
-          document.getElementById('typeSelect').value = e.type;
-          document.getElementById('notes').value = e.notes;
-          editingIndex = i;
-          document.getElementById('logBtn').textContent = 'Update';
-        };
+      document.querySelectorAll('.edit-btn').forEach(b=>b.onclick=()=>{
+        const i=+b.dataset.idx, e=logs[i];
+        repSelect.value=e.rep;
+        document.getElementById('typeSelect').value=e.type;
+        document.getElementById('notes').value=e.notes;
+        editingIndex=i;
+        document.getElementById('logBtn').textContent='Update';
       });
 
       updateCharts();
     }
 
-    // CHART.JS INIT & UPDATE
+    // Charts
     function initCharts() {
-      const commonOpts = { animation: { duration: 800, easing: 'easeOutQuart' } };
-      repChart = new Chart(document.getElementById('repChart').getContext('2d'), {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label:'Incidents by Rep', data: [], backgroundColor:'rgba(212,175,55,0.8)' }] },
-        options: commonOpts
+      const opts={animation:{duration:800,easing:'easeOutQuart'}};
+      repChart=new Chart(document.getElementById('repChart').getContext('2d'),{
+        type:'bar',data:{labels:[],datasets:[{label:'Incidents by Rep',data:[],backgroundColor:'rgba(212,175,55,0.8)'}]},options:opts
       });
-      typeChart = new Chart(document.getElementById('typeChart').getContext('2d'), {
-        type: 'pie',
-        data: { labels: [], datasets: [{ label:'By Type', data: [], backgroundColor:['#D4AF37','#E63946','#457B9D'] }] },
-        options: commonOpts
+      typeChart=new Chart(document.getElementById('typeChart').getContext('2d'),{
+        type:'pie',data:{labels:[],datasets:[{label:'By Type',data:[],backgroundColor:['#D4AF37','#E63946','#457B9D']}]},options:opts
       });
-      monthChart = new Chart(document.getElementById('monthChart').getContext('2d'), {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label:'Incidents by Month', data: [], backgroundColor:'rgba(212,175,55,0.8)' }] },
-        options: commonOpts
+      monthChart=new Chart(document.getElementById('monthChart').getContext('2d'),{
+        type:'bar',data:{labels:[],datasets:[{label:'Incidents by Month',data:[],backgroundColor:'rgba(212,175,55,0.8)'}]},options:opts
       });
       updateCharts();
     }
     function updateCharts() {
-      if (!repChart) return;
-      const byRep = {}, byType = {}, byMonth = {};
-      logs.forEach(e => {
-        byRep[e.rep] = (byRep[e.rep]||0)+1;
-        byType[e.type] = (byType[e.type]||0)+1;
-        const d=new Date(e.time), key=`${d.getMonth()+1}/${d.getFullYear()}`;
-        byMonth[key] = (byMonth[key]||0)+1;
+      if(!repChart) return;
+      const byRep={},byType={},byMonth={};
+      logs.forEach(e=>{
+        byRep[e.rep]=(byRep[e.rep]||0)+1;
+        byType[e.type]=(byType[e.type]||0)+1;
+        const d=new Date(e.time),key=`${d.getMonth()+1}/${d.getFullYear()}`;
+        byMonth[key]=(byMonth[key]||0)+1;
       });
-      repChart.data.labels = Object.keys(byRep);
-      repChart.data.datasets[0].data = Object.values(byRep);
+      repChart.data.labels=Object.keys(byRep);
+      repChart.data.datasets[0].data=Object.values(byRep);
       repChart.update();
-      typeChart.data.labels = Object.keys(byType);
-      typeChart.data.datasets[0].data = Object.values(byType);
+      typeChart.data.labels=Object.keys(byType);
+      typeChart.data.datasets[0].data=Object.values(byType);
       typeChart.update();
-      const sorted = Object.entries(byMonth).sort((a,b)=>{
-        const [am,ay] = a[0].split('/').map(Number);
-        const [bm,by_] = b[0].split('/').map(Number);
-        return new Date(ay,am-1) - new Date(by_,bm-1);
+      const sorted=Object.entries(byMonth).sort((a,b)=>{
+        const [am,ay]=a[0].split('/').map(Number),[bm,by_]=b[0].split('/').map(Number);
+        return new Date(ay,am-1)-new Date(by_,bm-1);
       });
-      monthChart.data.labels = sorted.map(x=>x[0]);
-      monthChart.data.datasets[0].data = sorted.map(x=>x[1]);
+      monthChart.data.labels=sorted.map(x=>x[0]);
+      monthChart.data.datasets[0].data=sorted.map(x=>x[1]);
       monthChart.update();
+    }
+
+    // Voice command
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      document.getElementById('voiceBtn').onclick = () => recognition.start();
+      recognition.onresult = e => handleVoiceCommand(e.results[0][0].transcript);
+      recognition.onerror = () => showToast('Voice recognition error');
+    } else {
+      document.getElementById('voiceBtn').disabled = true;
+    }
+
+    function handleVoiceCommand(speech) {
+      const lower = speech.toLowerCase();
+      if (!lower.startsWith('log incident for ')) {
+        showToast('Unrecognized command');
+        return;
+      }
+      const rest = speech.slice(17);
+      const parts = rest.split(':');
+      const repName = parts[0].trim();
+      const matched = reps.find(r => r.toLowerCase().includes(repName.toLowerCase()));
+      if (!matched) {
+        showToast(`Unknown rep "${repName}"`);
+        return;
+      }
+      repSelect.value = matched;
+      const notePart = parts[1] ? parts[1].trim() : '';
+      document.getElementById('notes').value = notePart;
+      let typeVal = 'Late';
+      if (lower.includes('late')) typeVal = 'Late';
+      else if (lower.includes('sick')) typeVal = 'Call In Sick';
+      else if (lower.includes('no call no show')) typeVal = 'No Call No Show';
+      document.getElementById('typeSelect').value = typeVal;
+      document.getElementById('logBtn').click();
     }
   </script>
 </body>
