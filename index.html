@@ -6,31 +6,31 @@
   <title>Spinnaker Incident Tracker</title>
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
 
-  <!-- TailwindCSS & Config -->
+  <!-- Tailwind + config -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            gold: '#D4AF37',
-            lgray: '#F8F7F6',
-            dgray: '#1A1A1A'
+      darkMode:'class',
+      theme:{
+        extend:{
+          colors:{
+            gold:'#D4AF37',
+            lgray:'#F8F7F6',
+            dgray:'#1A1A1A'
           },
-          fontFamily: {
-            body: ['Montserrat','sans-serif'],
-            heading: ['"Playfair Display"','serif']
+          fontFamily:{
+            body:['Montserrat','sans-serif'],
+            heading:['"Playfair Display"','serif']
           },
-          keyframes: {
-            fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
-            slideIn: { '0%': { transform: 'translateX(-20px)' }, '100%': { transform: 'translateX(0)' } }
+          keyframes:{
+            fadeIn:{'0%':{opacity:0},'100%':{opacity:1}},
+            pulse:{'0%':{opacity:1},'50%':{opacity:0.5},'100%':{opacity:1}}
           },
-          animation: {
-            fadeIn: 'fadeIn 0.5s ease-out',
-            slideIn: 'slideIn 0.5s ease-out'
+          animation:{
+            fadeIn:'fadeIn 0.5s ease-out',
+            pulse:'pulse 1.5s ease-in-out infinite'
           }
         }
       }
@@ -41,441 +41,390 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    /* Sticky filter bar */
-    #filterBar { position: sticky; top: 0; z-index: 20; }
-    /* Sticky table header */
-    .table-header th {
-      @apply sticky top-20 bg-gold text-dgray font-heading z-10;
+    /* watermark behind everything */
+    main { position: relative; }
+    #main-watermark {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      opacity:.05; pointer-events:none;
+      width:200px; height:auto;
     }
-    /* Toast container */
-    #toastContainer { position: fixed; bottom: 1rem; right: 1rem; z-index: 50; }
-    .toast {
-      @apply mb-2 px-4 py-2 bg-gold text-dgray rounded-lg shadow-lg flex items-center justify-between animate-fadeIn;
+    /* gradient buttons */
+    .btn-grad {
+      @apply text-white font-semibold rounded-xl px-4 py-2 transition transform;
+      background:linear-gradient(to right, rgba(212,175,55,0.8), rgba(212,175,55,0.6));
     }
-    /* Error banner */
-    #errorBanner {
-      @apply fixed top-0 left-0 right-0 bg-red-600 text-white p-4 flex justify-between items-center z-50;
+    .btn-grad:hover { @apply scale-105 shadow-lg; }
+
+    /* card wrapper */
+    .card {
+      @apply relative bg-white/30 dark:bg-black/30 backdrop-blur-md rounded-3xl shadow-2xl p-8 space-y-6;
     }
-    /* Table row hover */
+    /* focus rings */
+    input:focus, select:focus, textarea:focus, button:focus {
+      @apply ring-2 ring-gold/50 ring-offset-2 outline-none;
+    }
+    /* skeleton rows */
+    .skeleton { @apply animate-pulse bg-gray-200 dark:bg-gray-700 h-6 rounded; }
+
+    /* table hover */
     .log-row:hover {
       @apply shadow-lg shadow-gold/50 -translate-y-1 transition-all duration-200;
     }
+    /* sticky bars */
+    #filterBar,#bulkBar { position:sticky; z-index:20; }
+    #bulkBar { top:5rem; }
+    #filterBar { top:10rem; }
+    /* table header */
+    .table-header th {
+      @apply sticky top-[14rem] bg-gold text-dgray font-heading z-10;
+    }
+    /* undo snackbar */
+    #undoBar {
+      @apply fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-dgray/90 text-white px-6 py-3 rounded-full shadow-lg flex items-center space-x-4 opacity-0 transition-opacity;
+    }
+    #undoBar.show { @apply opacity-100; }
   </style>
 </head>
-
-<body class="flex flex-col min-h-screen bg-lgray text-gray-900 dark:bg-dgray dark:text-gray-100 font-body">
+<body class="flex flex-col min-h-screen bg-lgray dark:bg-dgray text-gray-900 dark:text-gray-100 font-body">
 
   <!-- NAVBAR -->
-  <nav class="flex items-center justify-between p-6 shadow-lg bg-white dark:bg-black/30">
-    <h1 class="text-3xl font-heading text-gold">Spinnaker Incident Tracker</h1>
-    <div class="space-x-4">
-      <button id="tabTracker" class="px-4 py-2 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition">Tracker</button>
-      <button id="tabAnalytics" class="px-4 py-2 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition">Analytics</button>
-      <button id="themeToggle" class="px-4 py-2 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition">Toggle Theme</button>
+  <nav class="flex flex-wrap items-center justify-between px-6 py-4 bg-white/70 dark:bg-black/40 backdrop-blur-lg shadow-xl">
+    <div class="flex items-center space-x-4">
+      <img src="spinnaker_logo.png" alt="Spinnaker Logo" class="h-12 w-auto"/>
+      <h1 class="text-xl md:text-2xl lg:text-3xl font-heading text-gold">Incident Tracker</h1>
+    </div>
+    <div class="space-x-3">
+      <button id="tabTracker" class="btn-grad">Tracker</button>
+      <button id="tabAnalytics" class="btn-grad">Analytics</button>
+      <button id="themeToggle" class="btn-grad">Toggle Theme</button>
     </div>
   </nav>
 
   <!-- ERROR BANNER -->
-  <div id="errorBanner" class="hidden">
-    <span id="errorMsg">Error!</span>
-    <div class="space-x-4">
-      <button id="retryBtn" class="underline">Retry</button>
-      <button id="dismissError" class="text-2xl leading-none">&times;</button>
-    </div>
+  <div id="errorBanner" class="hidden fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-xl shadow-lg z-50">
+    <span id="errorMsg"></span>
+    <button id="dismissError" class="ml-4 text-2xl leading-none">&times;</button>
   </div>
 
-  <main class="flex-grow container mx-auto px-4 py-6 md:px-8 md:py-8 space-y-8">
+  <main class="flex-grow container mx-auto px-4 py-6 md:px-8 md:py-10 space-y-10">
+
+    <!-- watermark -->
+    <img id="main-watermark" src="spinnaker_logo.png" alt="watermark"/>
+
+    <!-- LOGIN CARD -->
+    <div id="login" class="card max-w-md mx-auto">
+      <h2 class="text-lg md:text-xl lg:text-2xl font-heading text-center text-gold">Manager Login</h2>
+      <div class="space-y-4">
+        <div class="flex items-center space-x-2">
+          <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M5.121 17.804A12 12 0 1112 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <select id="managerSelect" class="flex-grow p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+            <option value="">Select Manager…</option>
+          </select>
+        </div>
+        <button id="loginBtn" class="w-full btn-grad">Enter</button>
+      </div>
+    </div>
 
     <!-- TRACKER -->
-    <section id="trackerSection">
+    <section id="trackerSection" class="hidden space-y-8">
 
-      <!-- LOGIN -->
-      <div id="login" class="max-w-md mx-auto bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-8 space-y-6">
-        <h2 class="text-2xl font-heading text-center text-gold">Manager Login</h2>
-        <select id="managerSelect" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
-          <option value="">Select Manager…</option>
-        </select>
-        <button id="loginBtn" class="w-full px-4 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition font-semibold">Enter</button>
+      <!-- Greeting & Logout -->
+      <div class="flex justify-between items-center">
+        <p class="text-lg">Logged in as <span id="mgrName" class="font-semibold"></span></p>
+        <button id="logoutBtn" class="btn-grad bg-red-600 hover:bg-red-500">Logout</button>
       </div>
 
-      <!-- FORM & TABLE -->
-      <div id="tracker" class="hidden space-y-8 mt-8">
-
-        <!-- GREETING & LOGOUT -->
-        <div class="flex justify-between items-center">
-          <p class="text-lg">Logged in as <span class="font-semibold" id="mgrName"></span></p>
-          <button id="logoutBtn" class="px-4 py-2 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition">Logout</button>
-        </div>
-
-        <!-- INCIDENT FORM -->
-        <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-8 space-y-6 max-w-xl">
-          <div class="grid grid-cols-1 gap-6">
-            <div>
-              <label class="block mb-2 font-medium">Sales Rep</label>
-              <select id="repSelect" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
-                <option value="">Select Rep…</option>
-              </select>
-            </div>
-            <div>
-              <label class="block mb-2 font-medium">Incident Type</label>
-              <select id="typeSelect" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
-                <option value="">Select Type…</option>
-                <option>Late</option>
-                <option>Call In Sick</option>
-                <option>No Call No Show</option>
-              </select>
-            </div>
+      <!-- Incident Form -->
+      <div class="card max-w-xl mx-auto">
+        <h3 class="text-xl font-heading text-gold">Log New Incident</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="relative">
+            <svg class="absolute top-3 left-3 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M5.121 17.804A12 12 0 1112 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <select id="repSelect" class="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+              <option value="">Select Sales Rep…</option>
+            </select>
           </div>
-          <div>
-            <label class="block mb-2 font-medium">Notes (optional)</label>
-            <textarea id="notes" rows="3" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"></textarea>
-          </div>
-          <div class="flex flex-col md:flex-row gap-4">
-            <button id="logBtn" class="flex-1 px-6 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition font-semibold">Log Incident</button>
-            <button id="voiceBtn" class="flex-1 px-6 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition font-semibold">
-              🎤 Voice Command
-            </button>
+          <div class="relative">
+            <svg class="absolute top-3 left-3 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8v4l3 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <select id="typeSelect" class="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+              <option value="">Reason for Incident…</option>
+            </select>
           </div>
         </div>
+        <div class="mt-4">
+          <textarea id="notes" rows="3" placeholder="Notes (optional)"
+            class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"></textarea>
+        </div>
+        <button id="logBtn" class="w-full btn-grad mt-4">Log Incident</button>
+      </div>
 
-        <!-- BULK ACTIONS BAR -->
-        <div id="bulkBar" class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center space-y-3 md:space-y-0 md:space-x-4 sticky top-20 z-10">
+      <!-- Bulk Actions -->
+      <div id="bulkBar" class="card flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6 sticky top-28">
+        <div class="flex items-center space-x-2">
           <input type="checkbox" id="bulkSelectAll" class="form-checkbox h-5 w-5 text-gold rounded"/>
           <label for="bulkSelectAll" class="font-medium">Select All</label>
-          <select id="bulkActionSelect" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition flex-1">
-            <option value="">Bulk Action…</option>
-            <option value="Late">Mark Late</option>
-            <option value="Call In Sick">Mark Sick</option>
-            <option value="No Call No Show">Mark No Show</option>
-          </select>
-          <button id="bulkApplyBtn" class="px-4 py-2 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition">Apply</button>
         </div>
+        <select id="bulkActionSelect" class="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+          <option value="">Bulk Action…</option>
+        </select>
+        <button id="bulkApplyBtn" class="btn-grad">Apply</button>
+      </div>
 
-        <!-- FILTER BAR -->
-        <div id="filterBar" class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6 mb-4 sticky top-28 z-10">
-          <div class="flex flex-wrap gap-4">
-            <select id="filterRep" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
-              <option value="">All Reps</option>
-            </select>
-            <select id="filterType" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
-              <option value="">All Types</option>
-              <option>Late</option>
-              <option>Call In Sick</option>
-              <option>No Call No Show</option>
-            </select>
-            <input type="date" id="filterFrom" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
-            <input type="date" id="filterTo" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
-            <input type="text" id="filterSearch" placeholder="Search notes…" class="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
-          </div>
-        </div>
+      <!-- Filter Bar -->
+      <div id="filterBar" class="card flex flex-wrap gap-4 overflow-x-auto sticky top-[16rem]">
+        <select id="filterRep" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+          <option value="">All Reps</option>
+        </select>
+        <select id="filterType" class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition">
+          <option value="">All Reasons</option>
+        </select>
+        <input type="date" id="filterFrom"
+          class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
+        <input type="date" id="filterTo"
+          class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
+        <input type="text" id="filterSearch" placeholder="Search notes…"
+          class="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-gold focus:border-gold transition"/>
+      </div>
 
-        <!-- LOG TABLE -->
-        <div class="overflow-x-auto max-h-[50vh]">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="table-header">
-              <tr>
-                <th class="px-4 py-3"><input type="checkbox" id="selectAllHeader" class="form-checkbox h-5 w-5 text-gold rounded"/></th>
-                <th class="px-4 py-3">#</th>
-                <th class="px-4 py-3">Rep</th>
-                <th class="px-4 py-3">Type</th>
-                <th class="px-4 py-3">Time</th>
-                <th class="px-4 py-3">By</th>
-                <th class="px-4 py-3">Notes</th>
-                <th class="px-4 py-3">Actions</th>
+      <!-- Log Table -->
+      <div class="card overflow-x-auto max-h-[50vh] relative">
+        <!-- Skeleton while loading -->
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="table-header">
+            <tr>
+              <th class="px-4 py-4"><input type="checkbox" id="selectAllHeader" class="form-checkbox h-5 w-5 text-gold rounded"/></th>
+              <th class="px-4 py-4">#</th>
+              <th class="px-4 py-4">Rep</th>
+              <th class="px-4 py-4">Reason</th>
+              <th class="px-4 py-4">Time</th>
+              <th class="px-4 py-4">By</th>
+              <th class="px-4 py-4">Notes</th>
+              <th class="px-4 py-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="skeletonBody">
+            <!-- 5 skeleton rows -->
+            ${Array(5).fill(0).map(_=>`
+              <tr class="animate-pulse">
+                ${'<td class="px-4 py-4"><div class="skeleton"></div></td>'.repeat(8)}
               </tr>
-            </thead>
-            <tbody id="logTableBody" class="bg-white dark:bg-black/20 divide-y divide-gray-100 dark:divide-gray-800">
-              <!-- injected via JS -->
-            </tbody>
-          </table>
-        </div>
+            `).join('')}
+          </tbody>
+          <tbody id="logTableBody" class="hidden bg-white dark:bg-black/20 divide-y divide-gray-100 dark:divide-gray-800"></tbody>
+        </table>
       </div>
     </section>
 
     <!-- ANALYTICS -->
     <section id="analyticsSection" class="hidden space-y-8 mt-8">
-      <h2 class="text-2xl font-heading text-gold">Analytics</h2>
+      <h2 class="text-xl md:text-2xl lg:text-3xl font-heading text-gold">Analytics</h2>
       <div class="grid md:grid-cols-2 gap-8">
-        <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6"><canvas id="repChart"></canvas></div>
-        <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6"><canvas id="typeChart"></canvas></div>
-        <div class="bg-white dark:bg-black/30 rounded-2xl shadow-2xl p-6 md:col-span-2"><canvas id="monthChart"></canvas></div>
+        <div class="card"><canvas id="repChart"></canvas></div>
+        <div class="card"><canvas id="typeChart"></canvas></div>
+        <div class="card md:col-span-2"><canvas id="monthChart"></canvas></div>
       </div>
     </section>
-
   </main>
 
-  <!-- TOASTS -->
+  <!-- UNDO SNACKBAR -->
+  <div id="undoBar">
+    <span id="undoMsg" class="flex-1"></span>
+    <button id="undoBtn" class="underline">UNDO</button>
+  </div>
+
+  <!-- Toasts -->
   <div id="toastContainer"></div>
 
   <script>
-    // Data & elements
-    const managers = [ "Stuart, John","Sents, Mathu","Rankin, Jeremy","Bentzoni, Chadd","Damon Robinson","Tami Tarver" ];
-    const reps = [ "Palumbo, Steve","Perryman, Michael","McGuire, Steve","Jeanette, Anthony","St John, Heather","Cassata, John","Kelly, Meghan","Gustin, Charles","Gulley, Keviin","Luttenbacher, Charles","Roman, Joel","Wilson, Mary Ann","Stapleton, Kyle","Shell, Clayton","Panameno, Michael","Pozza, John","Roman, Cee Cee","Hurst, Clarence","Laloo, Shiva" ];
-    let logs = JSON.parse(localStorage.getItem('incidentLogs')||'[]');
-    let currentManager = null, editingIndex = null, lastSaveCallback = null;
+    // Data
+    const managers=[ "Stuart, John","Sents, Mathu","Rankin, Jeremy","Bentzoni, Chadd","Damon Robinson","Tami Tarver" ];
+    const reps=[ "Palumbo, Steve","Perryman, Michael","McGuire, Steve","Jeanette, Anthony","St John, Heather","Cassata, John","Kelly, Meghan","Gustin, Charles","Gulley, Keviin","Luttenbacher, Charles","Roman, Joel","Wilson, Mary Ann","Stapleton, Kyle","Shell, Clayton","Panameno, Michael","Pozza, John","Roman, Cee Cee","Hurst, Clarence","Laloo, Shiva" ];
+    const reasons=[
+      "Late","Call In Sick","No Call No Show","Traffic Delay","Family Emergency",
+      "Technical Issue","Weather Delay","Meeting Overrun","Training","Personal Emergency","Other"
+    ];
+    let logs=JSON.parse(localStorage.getItem('incidentLogs')||'[]'),
+        currentManager=null, editingIndex=null, lastAction=null;
 
     // Refs
-    const body = document.documentElement;
-    const mgrSelect = document.getElementById('managerSelect');
-    const repSelect = document.getElementById('repSelect');
-    const filterRep = document.getElementById('filterRep');
-    const filterType = document.getElementById('filterType');
-    const filterFrom = document.getElementById('filterFrom');
-    const filterTo = document.getElementById('filterTo');
-    const filterSearch = document.getElementById('filterSearch');
-    const mgrNameEl = document.getElementById('mgrName');
-    const logTableBody = document.getElementById('logTableBody');
-    const loginDiv = document.getElementById('login');
-    const trackerDiv = document.getElementById('tracker');
-    const analyticsDiv = document.getElementById('analyticsSection');
-    const errorBanner = document.getElementById('errorBanner');
-    const errorMsg = document.getElementById('errorMsg');
-    const retryBtn = document.getElementById('retryBtn');
-    const dismissError = document.getElementById('dismissError');
-    const toastContainer = document.getElementById('toastContainer');
-    const bulkSelectAll = document.getElementById('bulkSelectAll');
-    const selectAllHeader = document.getElementById('selectAllHeader');
-    const bulkActionSelect = document.getElementById('bulkActionSelect');
-    const bulkApplyBtn = document.getElementById('bulkApplyBtn');
+    const mgrSel=document.getElementById('managerSelect'),
+          repSel=document.getElementById('repSelect'),
+          typeSel=document.getElementById('typeSelect'),
+          notesIn=document.getElementById('notes'),
+          mgrName=document.getElementById('mgrName'),
+          loginDiv=document.getElementById('login'),
+          tracker=document.getElementById('tracker'),
+          analytics=document.getElementById('analyticsSection'),
+          skeletonBody=document.getElementById('skeletonBody'),
+          logBody=document.getElementById('logTableBody'),
+          undoBar=document.getElementById('undoBar'),
+          undoMsg=document.getElementById('undoMsg'),
+          undoBtn=document.getElementById('undoBtn'),
+          toastC=document.getElementById('toastContainer');
 
-    let repChart, typeChart, monthChart;
-
-    // Save with error handling
-    function saveLogs(cb) {
-      lastSaveCallback = cb;
+    // Save + undo
+    function save(cb) {
+      const prev=JSON.stringify(logs);
       try {
-        localStorage.setItem('incidentLogs', JSON.stringify(logs));
-        hideError();
+        localStorage.setItem('incidentLogs',prev);
         cb();
-      } catch {
-        showError("Couldn't save incident—retry?", retrySave);
-      }
+        lastAction=prev;
+      } catch(e){ alert('Save failed'); }
     }
-    function retrySave() { if (lastSaveCallback) saveLogs(lastSaveCallback); }
-
-    // Error banner
-    function showError(msg, onRetry) {
-      errorMsg.textContent = msg;
-      retryBtn.onclick = onRetry;
-      errorBanner.classList.remove('hidden');
+    function undo(){
+      if(!lastAction) return;
+      logs=JSON.parse(lastAction);
+      localStorage.setItem('incidentLogs',lastAction);
+      render(); updateCharts();
+      undoBar.classList.remove('show');
     }
-    function hideError() { errorBanner.classList.add('hidden'); }
-    dismissError.onclick = hideError;
+    undoBtn.onclick=undo;
 
-    // Toasts
-    function showToast(txt) {
-      const t = document.createElement('div');
-      t.className = 'toast';
-      t.innerHTML = `<span>${txt}</span><button class="ml-4 font-bold">&times;</button>`;
-      toastContainer.appendChild(t);
-      const rm = () => t.remove();
-      t.querySelector('button').onclick = rm;
-      setTimeout(rm,3000);
+    // Toast
+    function toast(msg){
+      const t=document.createElement('div');
+      t.className='toast'; t.innerHTML=`<span>${msg}</span><button>&times;</button>`;
+      t.querySelector('button').onclick=()=>t.remove();
+      toastC.append(t);
+      setTimeout(()=>t.remove(),3000);
     }
 
     // Tabs & theme
-    document.getElementById('tabTracker').onclick = () => showSection('tracker');
-    document.getElementById('tabAnalytics').onclick = () => { showSection('analytics'); updateCharts(); };
-    document.getElementById('themeToggle').onclick = () => {
-      body.classList.toggle('dark');
-      localStorage.setItem('theme', body.classList.contains('dark')?'dark':'light');
+    document.getElementById('tabTracker').onclick=()=>show('tracker');
+    document.getElementById('tabAnalytics').onclick=()=>{show('analytics');updateCharts();};
+    document.getElementById('themeToggle').onclick=()=>{
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme',document.documentElement.classList.contains('dark')?'dark':'light');
     };
-    if(localStorage.getItem('theme')==='dark') body.classList.add('dark');
-    function showSection(s){ trackerDiv.classList.toggle('hidden',s!=='tracker'); analyticsDiv.classList.toggle('hidden',s!=='analytics'); }
+    if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark');
+    function show(s){ tracker.classList.toggle('hidden',s!=='tracker');analytics.classList.toggle('hidden',s!=='analytics'); }
 
-    // Populate dropdowns
-    managers.forEach(m=>mgrSelect.insertAdjacentHTML('beforeend',`<option>${m}</option>`));
-    reps.forEach(r=> {
-      repSelect.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
-      filterRep.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
+    // Populate selects
+    managers.forEach(m=>mgrSel.insertAdjacentHTML('beforeend',`<option>${m}</option>`));
+    reps.forEach(r=>repSel.insertAdjacentHTML('beforeend',`<option>${r}</option>`));
+    reasons.forEach(r=>{
+      typeSel.insertAdjacentHTML('beforeend',`<option>${r}</option>`);
+      document.getElementById('filterType').insertAdjacentHTML('beforeend',`<option>${r}</option>`);
+      document.getElementById('bulkActionSelect').insertAdjacentHTML('beforeend',`<option value="${r}">Mark ${r}</option>`);
     });
 
-    // Login/logout
-    document.getElementById('loginBtn').onclick = () => {
-      const m = mgrSelect.value; if(!m) return alert('Select manager');
-      currentManager=m; mgrNameEl.textContent=m;
-      loginDiv.classList.add('hidden'); trackerDiv.classList.remove('hidden');
-      renderLogs(); initCharts();
+    // Login
+    document.getElementById('loginBtn').onclick=()=>{
+      if(!mgrSel.value) return alert('Pick a manager');
+      currentManager=mgrSel.value; mgrName.textContent=currentManager;
+      loginDiv.classList.add('hidden'); tracker.classList.remove('hidden');
+      setTimeout(()=>{ skeletonBody.classList.add('hidden'); logBody.classList.remove('hidden'); render(); initCharts(); },500);
     };
-    document.getElementById('logoutBtn').onclick = () => {
+    document.getElementById('logoutBtn').onclick=()=>{
       currentManager=null; editingIndex=null;
-      loginDiv.classList.remove('hidden'); trackerDiv.classList.add('hidden');
-      mgrSelect.value='';
+      loginDiv.classList.remove('hidden'); tracker.classList.add('hidden');
+      mgrSel.value='';
     };
 
-    // Log/update handler
-    document.getElementById('logBtn').onclick = () => {
-      const rep=repSelect.value, type=document.getElementById('typeSelect').value;
-      const notes=document.getElementById('notes').value.trim();
-      if(!rep||!type) return alert('Rep & Type required');
-      const action = () => {
-        if(editingIndex!==null) {
-          logs[editingIndex]={...logs[editingIndex],rep,type,notes,manager:currentManager,time:Date.now()};
-          showToast(`Updated incident for ${rep}`);
+    // Log
+    document.getElementById('logBtn').onclick=()=>{
+      if(!repSel.value||!typeSel.value) return alert('Select rep & reason');
+      const entry={rep:repSel.value,type:typeSel.value,notes:notesIn.value,manager:currentManager,time:Date.now()};
+      save(()=>{
+        if(editingIndex!==null){
+          logs[editingIndex]=entry;
+          toast(`Updated ${entry.type} for ${entry.rep}`);
           editingIndex=null; document.getElementById('logBtn').textContent='Log Incident';
         } else {
-          logs.push({rep,type,notes,manager:currentManager,time:Date.now()});
-          showToast(`Incident logged for ${rep}`);
+          logs.push(entry);
+          toast(`Logged ${entry.type} for ${entry.rep}`);
         }
-        repSelect.value=''; document.getElementById('typeSelect').value=''; document.getElementById('notes').value='';
-        renderLogs();
-      };
-      saveLogs(action);
+        repSel.value=typeSel.value=notesIn.value='';
+        render(); updateCharts();
+        undoBar.classList.add('show'); undoMsg.textContent='Action done';
+      });
     };
 
-    // Bulk actions
-    selectAllHeader.onchange = bulkSelectAll.onchange = () => {
-      const chk = bulkSelectAll.checked||selectAllHeader.checked;
-      document.querySelectorAll('.row-checkbox').forEach(cb=>cb.checked=chk);
-      bulkSelectAll.checked=selectAllHeader.checked=chk;
+    // Bulk
+    document.getElementById('bulkSelectAll').onchange=document.getElementById('selectAllHeader').onchange=function(){
+      [...document.querySelectorAll('.row-checkbox')].forEach(cb=>cb.checked=this.checked);
+      document.getElementById('bulkSelectAll').checked=document.getElementById('selectAllHeader').checked=this.checked;
     };
-    bulkApplyBtn.onclick = () => {
-      const type=bulkActionSelect.value; if(!type) return alert('Choose action');
-      const idxs=Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb=>+cb.dataset.idx);
-      if(!idxs.length) return alert('No rows selected');
-      const action = () => {
-        idxs.forEach(i=>{ logs[i].type=type; logs[i].manager=currentManager; logs[i].time=Date.now(); });
-        showToast(`Applied "${type}" to ${idxs.length} rows`);
-        renderLogs();
-      };
-      saveLogs(action);
+    document.getElementById('bulkApplyBtn').onclick=()=>{
+      const action=document.getElementById('bulkActionSelect').value;
+      if(!action) return alert('Choose an action');
+      const idxs=[...document.querySelectorAll('.row-checkbox:checked')].map(cb=>+cb.dataset.idx);
+      if(!idxs.length) return alert('No rows');
+      save(()=>{
+        idxs.forEach(i=>{ logs[i].type=action; logs[i].manager=currentManager; logs[i].time=Date.now(); });
+        toast(`Applied ${action} to ${idxs.length} rows`);
+        render(); updateCharts();
+        undoBar.classList.add('show'); undoMsg.textContent='Bulk update done';
+      });
     };
 
     // Filters
-    [filterRep,filterType,filterFrom,filterTo,filterSearch].forEach(el=>el.oninput=renderLogs);
+    ['filterRep','filterType','filterFrom','filterTo','filterSearch'].forEach(id=>{
+      document.getElementById(id).oninput=render;
+    });
 
     // Render table
-    function renderLogs() {
-      const fr=filterRep.value, ft=filterType.value, fF=filterFrom.value, fT=filterTo.value, fs=filterSearch.value.toLowerCase();
-      const filtered = logs.filter(e=>{
+    function render(){
+      logBody.innerHTML='';
+      const fr=document.getElementById('filterRep').value;
+      const ft=document.getElementById('filterType').value;
+      const fF=document.getElementById('filterFrom').value;
+      const fT=document.getElementById('filterTo').value;
+      const fs=document.getElementById('filterSearch').value.toLowerCase();
+      logs.filter(e=>{
         if(fr&&e.rep!==fr) return false;
         if(ft&&e.type!==ft) return false;
         if(fF&&new Date(e.time)<new Date(fF)) return false;
         if(fT&&new Date(e.time)>new Date(fT+'T23:59:59')) return false;
-        if(fs&&!(e.notes||'').toLowerCase().includes(fs)) return false;
+        if(fs&&!e.notes.toLowerCase().includes(fs)) return false;
         return true;
-      });
-
-      logTableBody.innerHTML='';
-      filtered.forEach((e,i)=>{
+      }).forEach((e,i)=>{
         const idx=logs.indexOf(e);
-        const time=new Date(e.time).toLocaleString();
         const tr=document.createElement('tr');
         tr.className='log-row animate-fadeIn';
         tr.innerHTML=`
-          <td class="px-4 py-3"><input type="checkbox" data-idx="${idx}" class="row-checkbox form-checkbox h-5 w-5 text-gold rounded"/></td>
-          <td class="px-4 py-3 text-center">${i+1}</td>
-          <td class="px-4 py-3">${e.rep}</td>
-          <td class="px-4 py-3">${e.type}</td>
-          <td class="px-4 py-3">${time}</td>
-          <td class="px-4 py-3">${e.manager}</td>
-          <td class="px-4 py-3">${e.notes||''}</td>
-          <td class="px-4 py-3 space-x-2 text-center">
-            <button data-idx="${idx}" class="edit-btn px-3 py-1 border-2 border-gold text-gold hover:bg-gold hover:text-white rounded-lg transition text-sm">Edit</button>
-            <button data-idx="${idx}" class="del-btn px-3 py-1 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition text-sm">Del</button>
+          <td class="px-4 py-4"><input data-idx="${idx}" class="row-checkbox form-checkbox h-5 w-5 text-gold rounded" type="checkbox"/></td>
+          <td class="px-4 py-4 text-center">${i+1}</td>
+          <td class="px-4 py-4">${e.rep}</td>
+          <td class="px-4 py-4">${e.type}</td>
+          <td class="px-4 py-4">${new Date(e.time).toLocaleString()}</td>
+          <td class="px-4 py-4">${e.manager}</td>
+          <td class="px-4 py-4">${e.notes}</td>
+          <td class="px-4 py-4 space-x-2 text-center">
+            <button data-idx="${idx}" class="px-3 py-1 text-sm border-2 border-gold text-gold rounded-lg hover:scale-105 transition edit-btn">Edit</button>
+            <button data-idx="${idx}" class="px-3 py-1 text-sm border-2 border-red-600 text-red-600 rounded-lg hover:scale-105 transition del-btn">Del</button>
           </td>`;
-        logTableBody.appendChild(tr);
+        logBody.append(tr);
       });
-
-      // Attach handlers
-      document.querySelectorAll('.del-btn').forEach(b=>b.onclick=()=>{
-        const i=+b.dataset.idx;
-        if(!confirm('Delete this entry?')) return;
-        const action=()=>{
-          logs.splice(i,1);
-          showToast('Entry deleted');
-          renderLogs(); updateCharts();
-        };
-        saveLogs(action);
-      });
-      document.querySelectorAll('.edit-btn').forEach(b=>b.onclick=()=>{
-        const i=+b.dataset.idx, e=logs[i];
-        repSelect.value=e.rep;
-        document.getElementById('typeSelect').value=e.type;
-        document.getElementById('notes').value=e.notes;
-        editingIndex=i;
-        document.getElementById('logBtn').textContent='Update';
-      });
-
-      updateCharts();
+      // row actions
+      document.querySelectorAll('.del-btn').forEach(b=>b.onclick=()=>{const i=+b.dataset.idx; if(confirm('Delete?'))save(()=>{logs.splice(i,1);render();updateCharts();toast('Deleted');undoBar.classList.add('show');undoMsg.textContent='Delete done';});});
+      document.querySelectorAll('.edit-btn').forEach(b=>b.onclick=()=>{const i=+b.dataset.idx,e=logs[i];repSel.value=e.rep;typeSel.value=e.type;notesIn.value=e.notes;editingIndex=i;document.getElementById('logBtn').textContent='Update';});
     }
 
     // Charts
-    function initCharts() {
+    let repChart,typeChart,monthChart;
+    function initCharts(){
       const opts={animation:{duration:800,easing:'easeOutQuart'}};
-      repChart=new Chart(document.getElementById('repChart').getContext('2d'),{
-        type:'bar',data:{labels:[],datasets:[{label:'Incidents by Rep',data:[],backgroundColor:'rgba(212,175,55,0.8)'}]},options:opts
-      });
-      typeChart=new Chart(document.getElementById('typeChart').getContext('2d'),{
-        type:'pie',data:{labels:[],datasets:[{label:'By Type',data:[],backgroundColor:['#D4AF37','#E63946','#457B9D']}]},options:opts
-      });
-      monthChart=new Chart(document.getElementById('monthChart').getContext('2d'),{
-        type:'bar',data:{labels:[],datasets:[{label:'Incidents by Month',data:[],backgroundColor:'rgba(212,175,55,0.8)'}]},options:opts
-      });
+      repChart=new Chart(document.getElementById('repChart').getContext('2d'),{type:'bar',data:{labels:[],datasets:[{label:'By Rep',data:[],backgroundColor:'rgba(212,175,55,0.8)'}]},options:opts});
+      typeChart=new Chart(document.getElementById('typeChart').getContext('2d'),{type:'pie',data:{labels:[],datasets:[{label:'By Reason',data:[],backgroundColor:['#D4AF37','#E63946','#457B9D','#8D99AE','#2A9D8F','#E76F51','#264653','#F4A261','#A8DADC','#457B9D','#E9C46A']}]},options:opts});
+      monthChart=new Chart(document.getElementById('monthChart').getContext('2d'),{type:'bar',data:{labels:[],datasets:[{label:'By Month',data:[],backgroundColor:'rgba(212,175,55,0.8)'}]},options:opts});
       updateCharts();
     }
-    function updateCharts() {
+    function updateCharts(){
       if(!repChart) return;
       const byRep={},byType={},byMonth={};
-      logs.forEach(e=>{
-        byRep[e.rep]=(byRep[e.rep]||0)+1;
-        byType[e.type]=(byType[e.type]||0)+1;
-        const d=new Date(e.time),key=`${d.getMonth()+1}/${d.getFullYear()}`;
-        byMonth[key]=(byMonth[key]||0)+1;
-      });
-      repChart.data.labels=Object.keys(byRep);
-      repChart.data.datasets[0].data=Object.values(byRep);
-      repChart.update();
-      typeChart.data.labels=Object.keys(byType);
-      typeChart.data.datasets[0].data=Object.values(byType);
-      typeChart.update();
-      const sorted=Object.entries(byMonth).sort((a,b)=>{
-        const [am,ay]=a[0].split('/').map(Number),[bm,by_]=b[0].split('/').map(Number);
-        return new Date(ay,am-1)-new Date(by_,bm-1);
-      });
-      monthChart.data.labels=sorted.map(x=>x[0]);
-      monthChart.data.datasets[0].data=sorted.map(x=>x[1]);
-      monthChart.update();
-    }
-
-    // Voice command
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.lang = 'en-US';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      document.getElementById('voiceBtn').onclick = () => recognition.start();
-      recognition.onresult = e => handleVoiceCommand(e.results[0][0].transcript);
-      recognition.onerror = () => showToast('Voice recognition error');
-    } else {
-      document.getElementById('voiceBtn').disabled = true;
-    }
-
-    function handleVoiceCommand(speech) {
-      const lower = speech.toLowerCase();
-      if (!lower.startsWith('log incident for ')) {
-        showToast('Unrecognized command');
-        return;
-      }
-      const rest = speech.slice(17);
-      const parts = rest.split(':');
-      const repName = parts[0].trim();
-      const matched = reps.find(r => r.toLowerCase().includes(repName.toLowerCase()));
-      if (!matched) {
-        showToast(`Unknown rep "${repName}"`);
-        return;
-      }
-      repSelect.value = matched;
-      const notePart = parts[1] ? parts[1].trim() : '';
-      document.getElementById('notes').value = notePart;
-      let typeVal = 'Late';
-      if (lower.includes('late')) typeVal = 'Late';
-      else if (lower.includes('sick')) typeVal = 'Call In Sick';
-      else if (lower.includes('no call no show')) typeVal = 'No Call No Show';
-      document.getElementById('typeSelect').value = typeVal;
-      document.getElementById('logBtn').click();
+      logs.forEach(e=>{byRep[e.rep]=(byRep[e.rep]||0)+1;byType[e.type]=(byType[e.type]||0)+1;const d=new Date(e.time),k=`${d.getMonth()+1}/${d.getFullYear()}`;byMonth[k]=(byMonth[k]||0)+1;});
+      repChart.data.labels=Object.keys(byRep);repChart.data.datasets[0].data=Object.values(byRep);repChart.update();
+      typeChart.data.labels=Object.keys(byType);typeChart.data.datasets[0].data=Object.values(byType);typeChart.update();
+      const sorted=Object.entries(byMonth).sort((a,b)=>new Date(a[0].split('/')[1],a[0].split('/')[0]-1)-new Date(b[0].split('/')[1],b[0].split('/')[0]-1));
+      monthChart.data.labels=sorted.map(x=>x[0]);monthChart.data.datasets[0].data=sorted.map(x=>x[1]);monthChart.update();
     }
   </script>
 </body>
